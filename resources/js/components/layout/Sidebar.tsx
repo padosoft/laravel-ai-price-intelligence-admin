@@ -62,7 +62,7 @@ export function Sidebar({ route, onNavigate, counts = {}, features = {}, user, t
             </small>
           </div>
         </div>
-        <button className="iconbtn" title="Account" aria-label="Account">
+        <button type="button" className="iconbtn" title="Account" aria-label="Account">
           <I.ChevronDown size={14} />
         </button>
       </div>

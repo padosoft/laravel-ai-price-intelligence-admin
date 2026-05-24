@@ -94,9 +94,12 @@ const COUNTRY_NAMES: Record<string, string> = {
 
 /** Country chip (mono fallback letters). */
 export function Flag({ code }: { code: string }) {
+  const name = COUNTRY_NAMES[code] ?? code;
   return (
-    <span className="flag" title={COUNTRY_NAMES[code] ?? code}>
-      <span className="ff">{code}</span>
+    <span className="flag" title={name} role="img" aria-label={name}>
+      <span className="ff" aria-hidden="true">
+        {code}
+      </span>
     </span>
   );
 }

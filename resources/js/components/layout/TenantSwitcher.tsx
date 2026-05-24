@@ -18,7 +18,7 @@ export function TenantSwitcher({ open, onClose, tenants, onSelect }: TenantSwitc
       title="Switch tenant"
       sub={`Your account has access to ${tenants.length} tenant${tenants.length === 1 ? '' : 's'}.`}
       footer={
-        <button className="btn" onClick={onClose}>
+        <button type="button" className="btn" onClick={onClose}>
           Cancel
         </button>
       }

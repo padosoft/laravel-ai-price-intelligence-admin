@@ -35,6 +35,7 @@ export function Topbar({
   return (
     <header className="topbar">
       <button
+        type="button"
         className="iconbtn"
         onClick={onOpenTenant}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 8px', width: 'auto', borderRadius: 6 }}
@@ -74,13 +75,14 @@ export function Topbar({
         <span style={{ marginLeft: 4 }}>· {fmtTime(lastTick)}</span>
       </span>
 
-      <button className="search-trigger" onClick={onOpenPalette}>
+      <button type="button" className="search-trigger" onClick={onOpenPalette}>
         <I.Search size={13} />
         <span>Search products, competitors, hosts…</span>
         <span className="kbd">⌘K</span>
       </button>
 
       <button
+        type="button"
         className="iconbtn"
         onClick={() => onAutoRefresh(!autoRefresh)}
         title={autoRefresh ? 'Pause auto-refresh' : 'Resume auto-refresh'}
@@ -88,7 +90,7 @@ export function Topbar({
       >
         {autoRefresh ? <I.Pause size={14} /> : <I.Play size={14} />}
       </button>
-      <button className="iconbtn" title="Notifications" aria-label="Notifications" style={{ position: 'relative' }}>
+      <button type="button" className="iconbtn" title="Notifications" aria-label="Notifications" style={{ position: 'relative' }}>
         <I.Bell size={14} />
         {alertCount > 0 && (
           <span
@@ -106,6 +108,7 @@ export function Topbar({
         )}
       </button>
       <button
+        type="button"
         className="iconbtn"
         onClick={() => onTheme(theme === 'dark' ? 'light' : 'dark')}
         title="Toggle theme"

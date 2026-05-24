@@ -7,6 +7,10 @@
    pixel-perfect fidelity; Tailwind utilities remain available for layout. */
 @import "./design.css";
 
+/* Native form controls / scrollbars follow the active theme (TEMPLATE §2). */
+html[data-theme="dark"] { color-scheme: dark; }
+html[data-theme="light"] { color-scheme: light; }
+
 /* Project overrides: the prototype rendered some interactive rows as <div>; we use
    <button> for keyboard/AT accessibility, so restore the full-width block layout the
    div-designed classes assume. Kept here (not in the verbatim design.css). */

@@ -74,7 +74,7 @@ export function Drawer({ open, onClose, title, children, actions }: DrawerProps)
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {actions}
-            <button className="iconbtn" onClick={onClose} aria-label="Close">
+            <button type="button" className="iconbtn" onClick={onClose} aria-label="Close">
               <I.X size={16} />
             </button>
           </div>

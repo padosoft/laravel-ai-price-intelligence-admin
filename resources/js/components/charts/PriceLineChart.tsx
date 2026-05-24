@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import {
   scaleLinear,
   path,
@@ -34,6 +35,8 @@ export function PriceLineChart({
   smooth = true,
   padding = { t: 12, r: 16, b: 28, l: 56 },
 }: PriceLineChartProps) {
+  // Per-instance prefix so multiple charts on a page don't share gradient ids.
+  const gradPrefix = `grad-${useId().replace(/:/g, '')}`;
   const W = width;
   const H = height;
   const innerW = W - padding.l - padding.r;
@@ -62,7 +65,7 @@ export function PriceLineChart({
     <svg className="chart-svg" viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Price history">
       <defs>
         {series.map((s, i) => (
-          <linearGradient key={s.id ?? i} id={`grad-${s.id ?? i}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient key={s.id ?? i} id={`${gradPrefix}-${i}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={s.color} stopOpacity="0.12" />
             <stop offset="100%" stopColor={s.color} stopOpacity="0" />
           </linearGradient>
@@ -141,7 +144,7 @@ export function PriceLineChart({
           ` L${last[0]} ${padding.t + innerH} Z`;
         return (
           <g key={s.id ?? i}>
-            {!s.dashed && <path d={area} fill={`url(#grad-${s.id ?? i})`} />}
+            {!s.dashed && <path d={area} fill={`url(#${gradPrefix}-${i})`} />}
             <path
               d={smooth ? smoothPath(pts) : path(pts)}
               fill="none"
