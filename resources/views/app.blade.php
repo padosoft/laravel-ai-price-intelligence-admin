@@ -20,8 +20,10 @@
         {{-- Visible (not <noscript>): a missing entry means the assets weren't built/published,
              which must surface even with JavaScript enabled. --}}
         <p style="font-family: system-ui, sans-serif; padding: 2rem;">
-            Admin panel assets not found. Run <code>npm run build</code> and publish them via
-            <code>php artisan vendor:publish --tag=price-intelligence-admin-assets</code>.
+            Admin panel assets not found. Publish them in the host app with
+            <code>php artisan vendor:publish --tag=price-intelligence-admin-assets</code>
+            (released packages ship pre-built assets; a source checkout needs
+            <code>npm install &amp;&amp; npm run build</code> in the package first).
         </p>
     @endif
 </body>

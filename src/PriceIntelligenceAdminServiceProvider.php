@@ -59,9 +59,15 @@ final class PriceIntelligenceAdminServiceProvider extends ServiceProvider
             __DIR__.'/../config/price-intelligence-admin.php' => $this->configPath('price-intelligence-admin.php'),
         ], 'price-intelligence-admin-config');
 
-        $this->publishes([
-            __DIR__.'/../resources/dist' => public_path('vendor/price-intelligence-admin'),
-        ], 'price-intelligence-admin-assets');
+        // Built SPA assets ship with the released package (built in CI for the release
+        // tag). Only register the publish group when the dist dir is actually present so
+        // a source/dev checkout without a build doesn't reference a missing path.
+        $dist = __DIR__.'/../resources/dist';
+        if (is_dir($dist)) {
+            $this->publishes([
+                $dist => public_path('vendor/price-intelligence-admin'),
+            ], 'price-intelligence-admin-assets');
+        }
     }
 
     private function configPath(string $file): string
