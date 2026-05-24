@@ -1,25 +1,7 @@
 @import "tailwindcss";
 
-/* Design tokens are fleshed out in phase A1 (ported from the realized prototype).
-   This A0 baseline establishes the theme switch hook and tabular price numerals. */
-@theme inline {
-  --color-bg: light-dark(#ffffff, #0b0f17);
-  --color-surface: light-dark(#f8fafc, #111827);
-  --color-border: light-dark(#e2e8f0, #243044);
-  --color-text: light-dark(#0f172a, #e5e9f0);
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-}
-
-html[data-theme="dark"] { color-scheme: dark; }
-html[data-theme="light"] { color-scheme: light; }
-
-html, body, #root { height: 100%; }
-body {
-  margin: 0;
-  font-family: var(--font-sans);
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
-.tabular { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+/* Design system ported verbatim from the realized prototype (token system + semantic
+   component classes, dual theme via [data-theme], Geist Sans/Mono). Imported after
+   Tailwind so the prototype's tokens and component styles are the source of truth for
+   pixel-perfect fidelity; Tailwind utilities remain available for layout. */
+@import "./design.css";
