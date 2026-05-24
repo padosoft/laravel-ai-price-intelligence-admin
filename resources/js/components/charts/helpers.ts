@@ -13,9 +13,10 @@ export function path(points: Point[]): string {
   return points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join(' ');
 }
 
-/** Smoothed (cubic) SVG path from points. */
+/** Smoothed (cubic) SVG path from points. Single point -> a moveto (avoids empty `d`). */
 export function smoothPath(points: Point[]): string {
-  if (points.length < 2) return '';
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M${points[0][0]} ${points[0][1]}`;
   let d = `M${points[0][0]} ${points[0][1]}`;
   for (let i = 1; i < points.length; i++) {
     const [x0, y0] = points[i - 1];

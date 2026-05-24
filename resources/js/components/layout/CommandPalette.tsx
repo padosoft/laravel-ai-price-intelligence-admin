@@ -132,6 +132,7 @@ export function CommandPalette({
   }, [q, navItems, productItems, compItems]);
 
   const flat = useMemo(() => results.flatMap((s) => s.items), [results]);
+  const indexOf = useMemo(() => new Map(flat.map((it, i) => [it, i] as const)), [flat]);
 
   useEffect(() => {
     if (!open) return;
@@ -191,7 +192,7 @@ export function CommandPalette({
             <div key={sec.section}>
               <div className="palette-section">{sec.section}</div>
               {sec.items.map((it) => {
-                const idx = flat.indexOf(it);
+                const idx = indexOf.get(it) ?? 0;
                 return (
                   <button
                     key={`${sec.section}-${idx}`}

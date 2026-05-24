@@ -104,8 +104,10 @@ export function ForecastChart({
         />
       )}
 
-      <path d={smoothPath(histPts)} fill="none" stroke="var(--text)" strokeWidth="1.6" />
-      <path d={smoothPath(fcLine)} fill="none" stroke="var(--ai-color)" strokeWidth="1.6" strokeDasharray="5 3" />
+      {histPts.length > 0 && <path d={smoothPath(histPts)} fill="none" stroke="var(--text)" strokeWidth="1.6" />}
+      {fcLine.length > 0 && (
+        <path d={smoothPath(fcLine)} fill="none" stroke="var(--ai-color)" strokeWidth="1.6" strokeDasharray="5 3" />
+      )}
 
       <line x1={splitX} x2={splitX} y1={padding.t} y2={padding.t + innerH} stroke="var(--ai-color)" strokeOpacity="0.4" strokeDasharray="2 3" />
     </svg>

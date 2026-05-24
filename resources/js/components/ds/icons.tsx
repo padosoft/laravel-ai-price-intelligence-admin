@@ -10,10 +10,11 @@ import {
 } from 'lucide-react';
 
 /**
- * Icon map keyed by the prototype's names (ui.jsx `I`). Backed by lucide-react
- * (the prototype's icons were "lucide-style"), keeping the screen code identical
- * to the prototype's `<I.Xxx />` call sites. Default stroke width 1.75 matches the
- * prototype; pass `size` to override the 16px default.
+ * Icon map keyed by the prototype's names (ui.jsx `I`), backed by lucide-react (the
+ * prototype's icons were "lucide-style"), so screen code matches the prototype's
+ * `<I.Xxx />` call sites. These are the raw lucide components: pass `size` (and
+ * `strokeWidth` if needed) at the call site — the shell passes `size={14|15|16}` to
+ * match the prototype's 16px scale; lucide's own defaults (24 / 2) apply otherwise.
  */
 export const I = {
   Logo: TrendingUp,
@@ -80,5 +81,3 @@ export const I = {
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof I;
-export const ICON_STROKE = 1.75;
-export const ICON_SIZE = 16;
