@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { I } from '@/components/ds/icons';
 import { Price, Tag } from '@/components/ds/pricing';
 import { useCatalog } from '@/hooks/operate';
@@ -58,8 +59,13 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
-                  <tr key={p.id} onClick={() => onNavigate('competitor_detail', { product: p.id })}>
+                {filtered.map((p) => {
+                  const nav = () => onNavigate('competitor_detail', { product: p.id });
+                  const handleKey = (e: KeyboardEvent<HTMLTableRowElement>) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav(); }
+                  };
+                  return (
+                  <tr key={p.id} tabIndex={0} onClick={nav} onKeyDown={handleKey}>
                     <td>
                       <div style={{ fontWeight: 500, fontSize: 13 }}>{p.name}</div>
                       <div className="mono tertiary" style={{ fontSize: 11, marginTop: 2 }}>
@@ -74,7 +80,8 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
                     <td className="right">{p.our_price_cents != null ? <Price cents={p.our_price_cents} /> : '—'}</td>
                     <td>{p.base_country ? <Tag>{p.base_country}</Tag> : '—'}</td>
                   </tr>
-                ))}
+                  );
+                })}
                 {!isLoading && filtered.length === 0 && (
                   <tr>
                     <td colSpan={5} className="empty">No products</td>

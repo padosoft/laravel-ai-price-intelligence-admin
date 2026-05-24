@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import { I } from '@/components/ds/icons';
 import { AiBadge } from '@/components/ds/pricing';
 import { MiniSpark } from '@/components/charts';
@@ -72,8 +72,17 @@ export function AlertFeedRow({ alert, fresh, onClick }: { alert: Alert; fresh?: 
   const Icon = alertIcon(alert.type);
   const isAi = alert.type.includes('anomaly') || alert.type.includes('match.') || alert.type.includes('repricing');
   const host = (alert.payload?.host as string | undefined) ?? '';
+  const handleKey = onClick
+    ? (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }
+    : undefined;
   return (
-    <div className={`alert-item ${fresh ? 'new' : ''}`} onClick={onClick} role={onClick ? 'button' : undefined}>
+    <div
+      className={`alert-item ${fresh ? 'new' : ''}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={handleKey}
+    >
       <div className={`alert-icon ${alertIconKind(alert.type)}`}>
         <Icon size={14} />
       </div>

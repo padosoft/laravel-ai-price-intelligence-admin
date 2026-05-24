@@ -6,6 +6,7 @@ import type { RouteKey } from '@/lib/types';
 
 export interface PageRouterProps {
   route: RouteKey;
+  routeParams: Record<string, unknown>;
   onNavigate: (route: RouteKey, params?: Record<string, unknown>) => void;
 }
 
@@ -27,7 +28,7 @@ function ComingSoon({ route }: { route: RouteKey }) {
   );
 }
 
-export function PageRouter({ route, onNavigate }: PageRouterProps) {
+export function PageRouter({ route, routeParams: _routeParams, onNavigate }: PageRouterProps) {
   switch (route) {
     case 'dashboard':
       return <Dashboard onNavigate={onNavigate} />;

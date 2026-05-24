@@ -39,6 +39,7 @@ function AppContent() {
 
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
   const [route, setRoute] = useState<RouteKey>('dashboard');
+  const [routeParams, setRouteParams] = useState<Record<string, unknown>>({});
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [tenantOpen, setTenantOpen] = useState(false);
 
@@ -62,8 +63,9 @@ function AppContent() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const navigate = useCallback((next: RouteKey, _params?: Record<string, unknown>) => {
+  const navigate = useCallback((next: RouteKey, params?: Record<string, unknown>) => {
     setRoute(next);
+    setRouteParams(params ?? {});
     document.querySelector('.content')?.scrollTo(0, 0);
   }, []);
 
@@ -118,7 +120,7 @@ function AppContent() {
         onOpenPalette={() => setPaletteOpen(true)}
         onOpenTenant={() => setTenantOpen(true)}
       >
-        <PageRouter route={route} onNavigate={navigate} />
+        <PageRouter route={route} routeParams={routeParams} onNavigate={navigate} />
       </AppShell>
 
       <CommandPalette
