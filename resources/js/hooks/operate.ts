@@ -46,7 +46,11 @@ export function usePriceSeries(host: string) {
   });
 }
 
-/** Target actions: scrape-now and pause/resume, invalidating the targets list on success. */
+/**
+ * Target actions. `scrapeNow` only queues background jobs (the list doesn't change
+ * synchronously, so it doesn't invalidate); `setStatus` mutates the row and invalidates
+ * the targets list on success.
+ */
 export function useTargetActions() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ['targets'] });

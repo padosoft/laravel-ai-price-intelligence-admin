@@ -56,4 +56,14 @@ describe('Targets', () => {
     // Only the paused target (product #3) remains.
     await waitFor(() => expect(screen.getByText('Product #3')).toBeInTheDocument());
   });
+
+  it('pauses an active target with toast feedback', async () => {
+    const user = userEvent.setup();
+    wrap(<Targets />);
+    await waitFor(() => expect(screen.getAllByText(/Product #/).length).toBeGreaterThan(0));
+    // First row (target 101) is active → its toggle is a Pause button.
+    const firstRow = screen.getAllByText(/Product #/)[0].closest('tr') as HTMLElement;
+    await user.click(within(firstRow).getByRole('button', { name: 'Pause' }));
+    await waitFor(() => expect(screen.getByText('Target paused')).toBeInTheDocument());
+  });
 });

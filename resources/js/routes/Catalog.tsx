@@ -9,7 +9,13 @@ import type { RouteKey } from '@/lib/types';
 export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Record<string, unknown>) => void }) {
   const { data, isLoading } = useCatalog();
   const products = useMemo(() => data?.data ?? [], [data]);
-  const brands = useMemo(() => ['all', ...new Set(products.map((p) => p.brand).filter(Boolean) as string[])], [products]);
+  // Precompute brand counts once (O(n)) instead of filtering per chip in render.
+  const brandCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of products) if (p.brand) counts.set(p.brand, (counts.get(p.brand) ?? 0) + 1);
+    return counts;
+  }, [products]);
+  const brands = useMemo(() => ['all', ...brandCounts.keys()], [brandCounts]);
   const [brand, setBrand] = useState('all');
 
   const filtered = brand === 'all' ? products : products.filter((p) => p.brand === brand);
@@ -40,7 +46,7 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
             onClick={() => setBrand(b)}
           >
             {b === 'all' ? 'All brands' : b}
-            <span className="count">{b === 'all' ? products.length : products.filter((p) => p.brand === b).length}</span>
+            <span className="count">{b === 'all' ? products.length : (brandCounts.get(b) ?? 0)}</span>
           </button>
         ))}
       </div>
@@ -65,7 +71,7 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
                     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav(); }
                   };
                   return (
-                  <tr key={p.id} tabIndex={0} onClick={nav} onKeyDown={handleKey}>
+                  <tr key={p.id} role="button" aria-label={`Open ${p.name}`} tabIndex={0} onClick={nav} onKeyDown={handleKey}>
                     <td>
                       <div style={{ fontWeight: 500, fontSize: 13 }}>{p.name}</div>
                       <div className="mono tertiary" style={{ fontSize: 11, marginTop: 2 }}>

@@ -112,6 +112,12 @@ export async function mockFetch<T>(
   if (method === 'POST' && /^\/rules\/\d+\/simulate$/.test(path)) {
     return { data: { rule_id: 0, strategy: 'undercut_pct', custom_not_simulated: false, decisions: [] } } as T;
   }
+  const targetPatch = method === 'PATCH' && path.match(/^\/targets\/(\d+)$/);
+  if (targetPatch) {
+    const id = Number(targetPatch[1]);
+    const base = TARGETS.find((t) => t.id === id) ?? TARGETS[0];
+    return { data: { ...base, id, ...(body as object) } } as T;
+  }
 
   // Unregistered GET list endpoints resolve to an empty page so screens render.
   if (method === 'GET' && LIST_PATHS.includes(path)) {

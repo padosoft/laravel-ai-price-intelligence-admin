@@ -22,8 +22,16 @@ export function Targets() {
       onError: () => toast.push({ title: 'Scrape failed', kind: 'error' }),
     });
 
-  const onToggle = (id: number, current: TargetStatus) =>
-    setTargetStatus.mutate({ id, status: current === 'active' ? 'paused' : 'active' });
+  const onToggle = (id: number, current: TargetStatus) => {
+    const next = current === 'active' ? 'paused' : 'active';
+    setTargetStatus.mutate(
+      { id, status: next },
+      {
+        onSuccess: () => toast.push({ title: next === 'paused' ? 'Target paused' : 'Target resumed' }),
+        onError: () => toast.push({ title: 'Update failed', kind: 'error' }),
+      },
+    );
+  };
 
   return (
     <div className="page" data-testid="page-targets">

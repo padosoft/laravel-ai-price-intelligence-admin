@@ -17,7 +17,8 @@ const CHART_HOSTS: Array<{ id: string; host: string; name: string; color: string
 
 function toPoints(obs: PriceObservation[] | undefined) {
   return (obs ?? [])
-    .map((o) => ({ t: new Date(o.captured_at), price: o.price_base_cents ?? o.price_cents ?? 0 }))
+    .map((o) => ({ t: new Date(o.captured_at), price: o.price_base_cents ?? o.price_cents }))
+    .filter((p): p is { t: Date; price: number } => p.price != null) // drop unpriced points
     .sort((a, b) => a.t.getTime() - b.t.getTime());
 }
 
