@@ -1,4 +1,5 @@
 import type { CursorPage, DashboardStats, TenantMe } from './types';
+import { ALERTS, ANOMALIES, PRICE_SERIES, PRODUCTS, TARGETS } from './fixtures';
 
 // Dev/test fixture layer. Active only when runtimeConfig.useMocks is true (no live
 // Laravel backend). This is a dev-render convenience — shipped screens call the real
@@ -55,6 +56,17 @@ type Handler = (query?: Record<string, unknown>, body?: unknown) => unknown;
 const handlers: Record<string, Handler> = {
   'GET /tenants/me': () => ({ data: TENANT_ME }),
   'GET /stats': () => ({ data: STATS }),
+  'GET /catalog/products': () => page(PRODUCTS),
+  'GET /targets': (query) => {
+    const status = query?.status as string | undefined;
+    return page(status ? TARGETS.filter((t) => t.status === status) : TARGETS);
+  },
+  'GET /alerts': () => page(ALERTS),
+  'GET /anomalies': () => page(ANOMALIES),
+  'GET /observations/prices': (query) => {
+    const host = (query?.host as string | undefined) ?? 'amazon.it';
+    return page(PRICE_SERIES[host] ?? PRICE_SERIES['amazon.it']);
+  },
 };
 
 const LIST_PATHS = [
