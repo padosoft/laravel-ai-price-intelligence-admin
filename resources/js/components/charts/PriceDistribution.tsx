@@ -13,6 +13,9 @@ const PADDING: Padding = { t: 18, r: 16, b: 28, l: 16 };
 export function PriceDistribution({ ourPrice, competitors, width = 720, height = 80 }: PriceDistributionProps) {
   const allPrices = competitors.map((c) => c.price);
   if (ourPrice != null) allPrices.push(ourPrice);
+  if (allPrices.length === 0) {
+    return <svg className="chart-svg" viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-label="Competitor price distribution" />;
+  }
   const minP = Math.min(...allPrices) * 0.985;
   const maxP = Math.max(...allPrices) * 1.015;
   const x = scaleLinear([minP, maxP], [PADDING.l, width - PADDING.r]);

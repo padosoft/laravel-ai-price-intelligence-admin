@@ -16,6 +16,9 @@ function dotColor(d: ScatterPoint): string {
 
 /** Detrended price scatter with the normal p5–p95 band and highlighted anomalies. */
 export function AnomalyScatter({ data, width = 720, height = 220, padding = { t: 10, r: 10, b: 28, l: 48 } }: AnomalyScatterProps) {
+  if (data.length === 0) {
+    return <svg className="chart-svg" viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-label="Price anomalies" />;
+  }
   const W = width;
   const H = height;
   const innerW = W - padding.l - padding.r;

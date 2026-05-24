@@ -28,6 +28,9 @@ export function ForecastChart({
   height = 240,
   padding = { t: 12, r: 16, b: 28, l: 56 },
 }: ForecastChartProps) {
+  if (history.length === 0 && forecast.length === 0) {
+    return <svg className="chart-svg" viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-label="Price forecast" />;
+  }
   const W = width;
   const H = height;
   const innerW = W - padding.l - padding.r;
@@ -48,7 +51,7 @@ export function ForecastChart({
   const x = scaleLinear([minX, maxX], [padding.l, padding.l + innerW]);
   const y = scaleLinear([minY, maxY], [padding.t + innerH, padding.t]);
 
-  const splitX = x(history[history.length - 1].t.getTime());
+  const splitX = history.length > 0 ? x(history[history.length - 1].t.getTime()) : padding.l + innerW;
 
   const histPts: Point[] = history.map((p) => [x(p.t.getTime()), y(p.price)]);
   const fcLine: Point[] = [...histPts.slice(-1), ...forecast.map((p): Point => [x(p.t.getTime()), y(p.price)])];

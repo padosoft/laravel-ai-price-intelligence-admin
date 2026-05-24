@@ -33,7 +33,7 @@ describe('App shell', () => {
     const palette = await screen.findByRole('dialog', { name: 'Command palette' });
     const input = within(palette).getByPlaceholderText(/Search products, competitors/);
     await user.type(input, 'forecast');
-    await user.click(within(palette).getByRole('button', { name: /Forecasts/ }));
+    await user.click(within(palette).getByRole('option', { name: /Forecasts/ }));
     expect(screen.getByRole('heading', { name: 'Forecasts' })).toBeInTheDocument();
   });
 

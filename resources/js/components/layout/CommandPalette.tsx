@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { I } from '@/components/ds/icons';
 import { currencySymbol } from '@/lib/format';
 import type { PaletteCompetitor, PaletteProduct, RouteKey } from '@/lib/types';
@@ -53,6 +53,7 @@ export function CommandPalette({
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -148,13 +149,19 @@ export function CommandPalette({
 
   if (!open) return null;
 
-  let runningIdx = 0;
   return (
     <>
       <div className="overlay" onClick={onClose} />
       <div className="palette" role="dialog" aria-modal="true" aria-label="Command palette">
         <input
           ref={inputRef}
+          id={`${listId}-input`}
+          role="combobox"
+          aria-label="Search"
+          aria-autocomplete="list"
+          aria-expanded
+          aria-controls={listId}
+          aria-activedescendant={flat.length > 0 ? `${listId}-item-${active}` : undefined}
           className="palette-input"
           placeholder="Search products, competitors, hosts, or jump to a page…"
           value={q}
@@ -163,7 +170,7 @@ export function CommandPalette({
             setActive(0);
           }}
         />
-        <div className="palette-list">
+        <div id={listId} role="listbox" className="palette-list">
           {results.length === 0 && (
             <div className="empty" style={{ padding: '32px 16px' }}>
               No results
@@ -173,11 +180,14 @@ export function CommandPalette({
             <div key={sec.section}>
               <div className="palette-section">{sec.section}</div>
               {sec.items.map((it) => {
-                const idx = runningIdx++;
+                const idx = flat.indexOf(it);
                 return (
                   <button
                     key={`${sec.section}-${it.label}`}
+                    id={`${listId}-item-${idx}`}
                     type="button"
+                    role="option"
+                    aria-selected={idx === active}
                     className={`palette-item ${idx === active ? 'active' : ''}`}
                     onMouseEnter={() => setActive(idx)}
                     onClick={() => {

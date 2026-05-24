@@ -40,6 +40,9 @@ export function PriceLineChart({
   const innerH = H - padding.t - padding.b;
 
   const allPoints = series.flatMap((s) => s.data);
+  if (allPoints.length === 0) {
+    return <svg className="chart-svg" viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Price history" />;
+  }
   const xs = allPoints.map((p) => p.t.getTime());
   const ys = allPoints.map((p) => p.price);
   if (ourPrice != null) ys.push(ourPrice);
@@ -56,7 +59,7 @@ export function PriceLineChart({
   const xT = Array.from({ length: xTicks + 1 }, (_, i) => minX + ((maxX - minX) * i) / xTicks);
 
   return (
-    <svg className="chart-svg" viewBox={`0 0 ${W} ${H}`} width="100%" preserveAspectRatio="none" role="img" aria-label="Price history">
+    <svg className="chart-svg" viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Price history">
       <defs>
         {series.map((s, i) => (
           <linearGradient key={s.id ?? i} id={`grad-${s.id ?? i}`} x1="0" y1="0" x2="0" y2="1">
