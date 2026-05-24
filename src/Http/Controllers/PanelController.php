@@ -15,6 +15,8 @@ final class PanelController
 {
     private const PUBLIC_SUBDIR = 'vendor/price-intelligence-admin';
 
+    private const CACHE_KEY = 'price-intelligence-admin.vite-assets';
+
     public function __construct(
         private readonly ViewFactory $view,
         private readonly Config $config,
@@ -43,8 +45,9 @@ final class PanelController
 
     /**
      * Resolve the entry assets from the published manifest, memoized in the cache so
-     * the file isn't read + decoded on every request. The cache key carries the
-     * manifest's mtime so a redeploy/rebuild transparently busts the stale entry.
+     * the file isn't read + decoded on every request. A single fixed key stores both
+     * the manifest mtime and the resolved assets; when the mtime changes (rebuild/
+     * redeploy) the entry is recomputed in place — no unbounded growth of cache keys.
      *
      * @return array{js: string|null, css: array<int, string>}
      */
@@ -59,12 +62,14 @@ final class PanelController
             return ['js' => null, 'css' => []];
         }
 
-        /** @var array{js: string|null, css: array<int, string>} $assets */
-        $assets = $this->cache->rememberForever(
-            'price-intelligence-admin.vite-assets.'.$stamp,
-            static fn (): array => ViteAssets::resolve($publicDir),
-        );
+        /** @var array{stamp: int, assets: array{js: string|null, css: array<int, string>}}|null $cached */
+        $cached = $this->cache->get(self::CACHE_KEY);
 
-        return $assets;
+        if ($cached === null || $cached['stamp'] !== $stamp) {
+            $cached = ['stamp' => $stamp, 'assets' => ViteAssets::resolve($publicDir)];
+            $this->cache->forever(self::CACHE_KEY, $cached);
+        }
+
+        return $cached['assets'];
     }
 }

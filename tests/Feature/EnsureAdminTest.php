@@ -10,14 +10,14 @@ use Padosoft\PriceIntelligenceAdmin\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
- * Covers the cookie/session authorization path of EnsureAdmin:
+ * Covers EnsureAdmin's authorization (Gate) behaviour, which is uniform across auth
+ * modes since it acts on the resolved request user:
  *  - unauthenticated requests are rejected (401);
  *  - an authenticated user is denied (403) both when no gate is defined (deny by
  *    default) and when the gate explicitly denies;
  *  - an authenticated user the gate allows reaches the panel (200).
  *
- * The Sanctum bearer-token ability branch runs against the full Sanctum stack and is
- * exercised in the auth phase (A2), not here.
+ * Token-ability/scope enforcement (Sanctum abilities middleware) is layered in A2.
  */
 final class EnsureAdminTest extends TestCase
 {

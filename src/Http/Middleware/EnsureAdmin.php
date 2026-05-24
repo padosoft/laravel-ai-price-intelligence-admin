@@ -7,19 +7,17 @@ namespace Padosoft\PriceIntelligenceAdmin\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Guards the panel: the request must be authenticated and the user must hold the
- * `price-intelligence:admin` ability (Sanctum token ability or Gate). Host apps
- * may swap this for their own middleware via config.
+ * Guards the panel: the request must be authenticated and the authenticated user must
+ * pass the `price-intelligence:admin` Gate. Host apps define that ability (e.g. an
+ * is_admin flag or role); an undefined gate denies by default, keeping the panel secure.
  *
- * Two auth paths:
- *  - Bearer token (Sanctum PAT): the token itself must carry the `price-intelligence:admin` ability.
- *  - Cookie / session (Sanctum SPA or plain Laravel auth): the `price-intelligence:admin` Gate
- *    must return true. Host apps define this gate (e.g. checking an is_admin flag or role).
- *    Undefined gates default to denied.
+ * Authentication (cookie SPA session or Sanctum bearer token) is handled upstream by the
+ * `auth:sanctum` middleware. Token-ability/scope enforcement (requiring the token itself
+ * to carry the admin ability) is layered in the auth phase (A2) via Sanctum's abilities
+ * middleware; here we authorize the resolved user uniformly for both auth modes.
  */
 final class EnsureAdmin
 {
@@ -31,24 +29,8 @@ final class EnsureAdmin
             abort(Response::HTTP_UNAUTHORIZED);
         }
 
-        // Sanctum bearer-token path: check the token carries the admin ability directly.
-        // Calling can() on the PersonalAccessToken avoids calling tokenCan() on a type
-        // that PHPStan doesn't know has that method (HasApiTokens trait users).
-        // In SPA/cookie mode, currentAccessToken() returns a TransientToken (not a PAT)
-        // so this branch is skipped and we fall through to the Gate check.
-        $token = method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
-        if ($token instanceof PersonalAccessToken) {
-            if (! $token->can('price-intelligence:admin')) {
-                abort(Response::HTTP_FORBIDDEN);
-            }
-
-            return $next($request);
-        }
-
-        // Cookie / session auth: delegate to the Gate, checking the user resolved from
-        // THIS request (the panel may run under a non-default guard, so Gate::forUser
-        // avoids authorizing against the default resolver's user). Host apps must define
-        // the 'price-intelligence:admin' ability; an undefined gate defaults to denied.
+        // Authorize the user resolved from THIS request (the panel may run under a
+        // non-default guard, so forUser avoids the default resolver). Undefined gate => denied.
         if (! Gate::forUser($user)->allows('price-intelligence:admin')) {
             abort(Response::HTTP_FORBIDDEN);
         }
