@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '@/components/layout/AppShell';
 import { CommandPalette } from '@/components/layout/CommandPalette';
 import { TenantSwitcher } from '@/components/layout/TenantSwitcher';
 import { ROUTE_TITLES } from '@/components/layout/nav';
 import { ToastProvider } from '@/components/ds';
+import { createQueryClient } from '@/lib/api/queryClient';
+import { AuthProvider } from '@/state/AuthProvider';
+import { useAuth } from '@/state/auth-context';
+import { useStats } from '@/hooks/useStats';
+import '@/lib/i18n';
 import type { NavCounts, RouteKey, Tenant, TenantFeatures, Theme, User } from '@/lib/types';
 
 const THEME_KEY = 'pi-admin-theme';
 
 function readInitialTheme(): Theme {
-  // localStorage can throw (SecurityError) in some privacy modes — degrade gracefully.
   try {
     const stored = localStorage.getItem(THEME_KEY);
     if (stored === 'light' || stored === 'dark') return stored;
@@ -19,20 +24,19 @@ function readInitialTheme(): Theme {
   return window.matchMedia?.('(prefers-color-scheme: light)')?.matches ? 'light' : 'dark';
 }
 
-// Demo identity/flags for the A1 shell. Replaced by the AuthProvider hydrated from
-// GET /tenants/me in the A2 phase.
-const DEMO_TENANT: Tenant = { id: 'acme-it', code: 'ACME', name: 'Acme Italia', plan: 'Enterprise' };
-const DEMO_USER: User = { name: 'Lorenzo Padovani', initials: 'LP', role: 'Pricing lead' };
-const DEMO_FEATURES: TenantFeatures = { review_insight: true, repricer: true, ai_act: true };
-const DEMO_COUNTS: NavCounts = { matches: 12, alerts: 3, anomalies: 5 };
+// The signed-in admin user is a host-app concern (Sanctum session), not core data, so it
+// stays a constant for now; tenant + features come live from GET /tenants/me.
+const ADMIN_USER: User = { name: 'Lorenzo Padovani', initials: 'LP', role: 'Pricing lead' };
+const FALLBACK_TENANT: Tenant = { id: '—', code: '—', name: 'Loading…' };
 const DEMO_TENANTS: Tenant[] = [
   { id: 'acme-it', code: 'ACME', name: 'Acme Italia', plan: 'Enterprise', current: true },
   { id: 'acme-es', code: 'ACES', name: 'Acme España', plan: 'Growth' },
-  { id: 'acme-de', code: 'ACDE', name: 'Acme Deutschland', plan: 'Growth' },
-  { id: 'demo', code: 'DEMO', name: 'Demo workspace', plan: 'Trial' },
 ];
 
-export default function App() {
+function AppContent() {
+  const { me, hasFeature, isLoading, isError } = useAuth();
+  const stats = useStats({ enabled: !!me });
+
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
   const [route, setRoute] = useState<RouteKey>('dashboard');
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -43,7 +47,7 @@ export default function App() {
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch {
-      /* ignore persistence failures (privacy mode / quota) */
+      /* ignore persistence failures */
     }
   }, [theme]);
 
@@ -63,17 +67,54 @@ export default function App() {
     document.querySelector('.content')?.scrollTo(0, 0);
   }, []);
 
+  const tenant: Tenant = me?.tenant
+    ? { id: String(me.tenant.id), code: me.tenant.code ?? '—', name: me.tenant.name ?? '—' }
+    : FALLBACK_TENANT;
+
+  // Feature flags govern conditional nav (Reviews/Repricer/Compliance) — sourced from core.
+  const features: TenantFeatures = useMemo(
+    () => ({
+      review_insight: hasFeature('review_insight'),
+      repricer: hasFeature('repricer'),
+      ai_act: hasFeature('ai_act'),
+    }),
+    [hasFeature],
+  );
+
+  const counts: NavCounts = {
+    matches: stats.data?.matches_pending,
+    alerts: stats.data?.alerts_unacknowledged,
+    anomalies: stats.data?.anomalies_24h,
+  };
+
   const title = (ROUTE_TITLES[route] ?? [route]).at(-1) ?? route;
 
+  // Guard: session expired or auth request failed — don't render a silently broken shell.
+  if (isError) {
+    return (
+      <div className="auth-error" role="alert" style={{ padding: '2rem', textAlign: 'center' }}>
+        <p>Unable to load your session. Please <a href="/login">sign in again</a>.</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="auth-loading" aria-live="polite" style={{ padding: '2rem', textAlign: 'center' }}>
+        <p>Loading…</p>
+      </div>
+    );
+  }
+
   return (
-    <ToastProvider>
+    <>
       <AppShell
         route={route}
         onNavigate={navigate}
-        tenant={DEMO_TENANT}
-        user={DEMO_USER}
-        counts={DEMO_COUNTS}
-        features={DEMO_FEATURES}
+        tenant={tenant}
+        user={ADMIN_USER}
+        counts={counts}
+        features={features}
         theme={theme}
         onTheme={setTheme}
         onOpenPalette={() => setPaletteOpen(true)}
@@ -83,12 +124,16 @@ export default function App() {
           <div className="page-head">
             <div>
               <h1 className="page-title">{title}</h1>
-              <p className="page-sub">Screen implementation lands in the A3–A6 phases.</p>
+              <p className="page-sub">
+                Connected to {tenant.name}. Screen implementation lands in the A3–A6 phases.
+              </p>
             </div>
           </div>
           <div className="card">
             <div className="card-body muted">
-              Design system + shell ready. Route: <code>{route}</code>.
+              Route: <code>{route}</code>. Features —{' '}
+              repricer: <b>{String(features.repricer)}</b>, reviews:{' '}
+              <b>{String(features.review_insight)}</b>, ai_act: <b>{String(features.ai_act)}</b>.
             </div>
           </div>
         </div>
@@ -99,9 +144,23 @@ export default function App() {
         onClose={() => setPaletteOpen(false)}
         onNavigate={navigate}
         onOpenCompetitor={() => navigate('competitor_detail')}
-        features={DEMO_FEATURES}
+        features={features}
       />
       <TenantSwitcher open={tenantOpen} onClose={() => setTenantOpen(false)} tenants={DEMO_TENANTS} />
-    </ToastProvider>
+    </>
+  );
+}
+
+export default function App() {
+  // One QueryClient per App mount (avoids cross-mount cache leaks in tests / HMR).
+  const [queryClient] = useState(createQueryClient);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
