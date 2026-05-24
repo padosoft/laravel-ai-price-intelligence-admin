@@ -23,6 +23,14 @@ structure. Screenshots to mirror: `screenshoots/`.
 - Frontend: `npm run typecheck | lint | test | build | e2e`. Node ≥ 24.
 - PHP: `vendor\bin\phpunit`, `vendor\bin\pint`, `vendor\bin\phpstan analyse --memory-limit=1G`.
 
+## Core API gaps — backfill, never mock-and-ship
+If a screen/interaction needs a `/api/v1` endpoint, filter, field, or option the core
+`padosoft/laravel-ai-price-intelligence` does not yet expose: do NOT leave the admin mocked or
+incomplete. Flag it, switch to the core repo, implement + release the missing feature (core's strict
+per-phase loop, tag + Packagist), then return here, bump the core dependency, and finish the screen
+against the real API. MSW/mocks are a dev-render convenience only — never the final state of a
+shipped screen.
+
 ## Definition of done (every gate, locally + CI)
 `composer validate` · PHPUnit · Pint · PHPStan level 5 · `tsc --noEmit` · ESLint · Vitest ·
 `vite build` · Playwright (+ axe). The admin requires **Playwright scenarios for every screen and
