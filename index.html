@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="it" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>price-intel · admin</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Dev fallback for the runtime config Blade injects in production.
+      window.__PI_ADMIN__ = window.__PI_ADMIN__ || {
+        apiBaseUrl: '/api/v1',
+        auth: { mode: 'cookie' },
+        locale: 'it',
+        csrfCookie: 'XSRF-TOKEN',
+        realtime: { driver: 'sse' },
+        useMocks: true,
+      };
+    </script>
+    <script type="module" src="/resources/js/main.tsx"></script>
+  </body>
+</html>
