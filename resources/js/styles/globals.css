@@ -1,25 +1,43 @@
 @import "tailwindcss";
 
-/* Design tokens are fleshed out in phase A1 (ported from the realized prototype).
-   This A0 baseline establishes the theme switch hook and tabular price numerals. */
-@theme inline {
-  --color-bg: light-dark(#ffffff, #0b0f17);
-  --color-surface: light-dark(#f8fafc, #111827);
-  --color-border: light-dark(#e2e8f0, #243044);
-  --color-text: light-dark(#0f172a, #e5e9f0);
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-}
+/* Design system ported verbatim from the realized prototype (token system + semantic
+   component classes, dual theme via [data-theme], Geist Sans/Mono). Imported after
+   Tailwind so the prototype's tokens and component styles are the source of truth for
+   pixel-perfect fidelity; Tailwind utilities remain available for layout. */
+@import "./design.css";
 
+/* Native form controls / scrollbars follow the active theme (TEMPLATE §2). */
 html[data-theme="dark"] { color-scheme: dark; }
 html[data-theme="light"] { color-scheme: light; }
 
-html, body, #root { height: 100%; }
-body {
-  margin: 0;
-  font-family: var(--font-sans);
-  background: var(--color-bg);
-  color: var(--color-text);
+/* Point the design tokens at the self-hosted (fontsource) variable families. */
+:root {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
-.tabular { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+/* Project overrides: the prototype rendered some interactive rows as <div>; we use
+   <button> for keyboard/AT accessibility, so restore the full-width block layout the
+   div-designed classes assume. Kept here (not in the verbatim design.css). */
+button.nav-item,
+button.palette-item {
+  width: 100%;
+  text-align: left;
+}
+button.treemap-cell {
+  text-align: left;
+  font: inherit;
+}
+
+/* Accessibility: TEMPLATE.md §8 requires WCAG 2.1 AA contrast (>=4.5:1). The prototype's
+   tertiary text and live-pill green fall just under that, so nudge the tokens to the
+   nearest AA-passing values in both themes — visually near-identical, measurably compliant. */
+:root {
+  --text-tertiary: #6b6b73; /* was #8a8a93 (3.42:1 on white) -> ~5.0:1 */
+}
+[data-theme="dark"] {
+  --text-tertiary: #8e8e97; /* was #6e6e76 (sub-AA on near-black) -> AA on dark surfaces */
+}
+.live-pill { color: #0a7350; } /* darker green meets AA on the light accent tint */
+[data-theme="dark"] .live-pill { color: var(--accent); }
+

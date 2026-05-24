@@ -7,14 +7,19 @@ Building the web admin panel for the core (released v1.0.0). One PR per phase, s
 CI → GitHub-Copilot loop, auto-merge authorized.
 
 ## Roadmap
-- [ ] **A0 — Repo scaffold + tooling** (branch `feat/admin-a0-scaffold`): package.json
-  (React 19 / Vite / TS / Tailwind 4 / Vitest / Playwright / Lucide / TanStack Query / i18next /
-  Recharts), tsconfig, vite/vitest/playwright/eslint configs, globals.css, main.tsx/App.tsx boot,
-  composer.json (require core ^1.0), ServiceProvider + PanelController + EnsureAdmin + config + Blade
-  wrapper, PHPUnit (Testbench) panel route test, Vitest + Playwright boot tests, CI (php-tests,
-  php-quality, frontend, e2e), AGENTS/CLAUDE/rules, LESSON/PROGRESS.
-- [ ] A1 — Design system (port styles.css tokens to Tailwind 4) + ds/ primitives + shell
-  (Sidebar/Topbar/CommandPalette/TenantSwitcher/Toast) + chart kit + dark/light.
+- [x] **A0 — Repo scaffold + tooling** (PR #1 merged): full PHP+JS toolchain, CI 5 jobs green,
+  EnsureAdmin (Gate-only, auth:sanctum), PanelController (manifest→assets cached), boot tests.
+- [ ] **A1 — Design system + shell + charts** (branch `feat/admin-a1-design-system`, IN PROGRESS):
+  - DONE: ported the prototype's full design system CSS verbatim → `resources/js/styles/design.css`
+    (token system + dual theme via `[data-theme]` + all semantic component classes: .btn .card .kpi
+    .badge .tbl .ai-badge .price-delta .conf .treemap .promo-gantt .match-* etc.), imported after
+    Tailwind in `globals.css`. Build green (CSS bundle ~55KB).
+  - NEXT: port `ui.jsx` → `resources/js/components/ds/` (Icon + I icon map; StatusBadge, Sparkline,
+    Modal, Drawer, Kbd, ToastProvider/useToast, Skeleton; domain primitives Price, PriceDelta,
+    AiBadge, ConfidenceBadge, Flag, HostChip, BrandMark, Tag) and `lib/format.ts` (fmtRelative/
+    Time/DateTime/Duration/Num/Pct, jsonHighlight). Then `shell.jsx` → Sidebar/Topbar/CommandPalette/
+    TenantSwitcher, and `charts.jsx` → chart kit. Vitest on primitives + theme toggle. Source of
+    truth: `~/Downloads/ai-price-intelligence-web-panel/project/{ui,shell,charts}.jsx`.
 - [ ] A2 — API client + Sanctum auth + TS types + i18n IT/EN + TanStack Query + mock layer.
 - [ ] A3 — Screens: Dashboard, Catalog, Targets (pages-a).
 - [ ] A4 — Screens: Matches, Competitors, CompetitorDetail, Prices (pages-b).
@@ -24,8 +29,12 @@ CI → GitHub-Copilot loop, auto-merge authorized.
 - [ ] A8 — README wow + screenshots, consolidate LESSON, tag v1.0.0 + release.
 
 ## Next action
-Finish A0: `npm install`, `composer install`, run Vitest + PHPUnit + build locally green, local
-Copilot review, then push branch `feat/admin-a0-scaffold` and open the PR.
+A1 progress on `feat/admin-a1-design-system`: DONE so far — design.css port, ds primitives + Vitest,
+shell nav config + Sidebar + Topbar + AppShell, App wired with theme persistence + routing + demo
+identity, a11y fixes (main landmark, AA contrast tokens), font @import hoisted. All local gates green
+(typecheck/lint/vitest 15/build/e2e+axe). REMAINING for A1: port `shell.jsx` CommandPalette +
+TenantSwitcher (need catalog/competitor/tenant data — may pair with A2 mock layer) and `charts.jsx`
+chart kit. Then local-Copilot loop → push → CI → GitHub-Copilot loop → squash-merge → A2.
 
 ## Key facts
 - Frontend lives in `resources/js/` (avoids clash with PHP PSR-4 `src/`). Alias `@/*`.
