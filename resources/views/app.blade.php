@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>price-intel · admin</title>
     <script>
-        window.__PI_ADMIN__ = @json($runtime);
+        window.__PI_ADMIN__ = {!! \Illuminate\Support\Js::from($runtime) !!};
     </script>
     @php
         $manifestPath = public_path('vendor/price-intelligence-admin/.vite/manifest.json');
@@ -23,13 +23,13 @@
         $base = rtrim(asset('vendor/price-intelligence-admin'), '/').'/';
     @endphp
     @foreach ($assets['css'] as $css)
-        <link rel="stylesheet" href="{{ $base }}{{ $css }}">
+        <link rel="stylesheet" href="{{ $base }}{{ ltrim($css, '/') }}">
     @endforeach
 </head>
 <body>
     <div id="root"></div>
     @if ($assets['js'])
-        <script type="module" src="{{ $base }}{{ $assets['js'] }}"></script>
+        <script type="module" src="{{ $base }}{{ ltrim($assets['js'], '/') }}"></script>
     @else
         <noscript>Run <code>npm run build</code> and publish assets to render the panel.</noscript>
     @endif

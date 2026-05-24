@@ -24,8 +24,11 @@ final class PanelRouteTest extends TestCase
         $response = $this->get('/admin/price-intelligence');
 
         $response->assertOk();
+        // Js::from() wraps in JSON.parse('…') with unicode-escaped quotes; check
+        // structural markers rather than literal quote characters.
         $response->assertSee('window.__PI_ADMIN__', false);
-        $response->assertSee('"apiBaseUrl":"\/api\/v1"', false);
+        $response->assertSee('JSON.parse(', false);
+        $response->assertSee('apiBaseUrl', false);
         $response->assertSee('id="root"', false);
     }
 
