@@ -15,6 +15,10 @@ button.palette-item {
   width: 100%;
   text-align: left;
 }
+button.treemap-cell {
+  text-align: left;
+  font: inherit;
+}
 
 /* Accessibility: TEMPLATE.md §8 requires WCAG 2.1 AA contrast (>=4.5:1). The prototype's
    tertiary text and live-pill green fall just under that, so nudge the tokens to the
