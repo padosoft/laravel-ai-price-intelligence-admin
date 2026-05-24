@@ -11,6 +11,9 @@ export interface MiniSparkProps {
 /** Inline tiny line used in table cells / KPI tiles. */
 export function MiniSpark({ data, width = 96, height = 28, color = 'var(--text-secondary)', fill = true }: MiniSparkProps) {
   const values = data.map((d) => (typeof d === 'number' ? d : d.price));
+  if (values.length === 0) {
+    return <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true" />;
+  }
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;

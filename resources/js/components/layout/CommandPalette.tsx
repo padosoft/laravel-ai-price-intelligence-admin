@@ -130,7 +130,7 @@ export function CommandPalette({
         onClose();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActive((a) => Math.min(flat.length - 1, a + 1));
+        setActive((a) => Math.max(0, Math.min(flat.length - 1, a + 1)));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setActive((a) => Math.max(0, a - 1));
@@ -183,7 +183,7 @@ export function CommandPalette({
                 const idx = flat.indexOf(it);
                 return (
                   <button
-                    key={`${sec.section}-${it.label}`}
+                    key={`${sec.section}-${idx}`}
                     id={`${listId}-item-${idx}`}
                     type="button"
                     role="option"

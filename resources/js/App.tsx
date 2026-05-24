@@ -9,8 +9,13 @@ import type { NavCounts, RouteKey, Tenant, TenantFeatures, Theme, User } from '@
 const THEME_KEY = 'pi-admin-theme';
 
 function readInitialTheme(): Theme {
-  const stored = localStorage.getItem(THEME_KEY);
-  if (stored === 'light' || stored === 'dark') return stored;
+  // localStorage can throw (SecurityError) in some privacy modes — degrade gracefully.
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === 'light' || stored === 'dark') return stored;
+  } catch {
+    /* ignore — fall back to the OS preference */
+  }
   return window.matchMedia?.('(prefers-color-scheme: light)')?.matches ? 'light' : 'dark';
 }
 
@@ -35,7 +40,11 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem(THEME_KEY, theme);
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* ignore persistence failures (privacy mode / quota) */
+    }
   }, [theme]);
 
   useEffect(() => {

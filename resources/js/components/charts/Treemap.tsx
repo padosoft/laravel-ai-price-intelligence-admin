@@ -28,7 +28,9 @@ export function Treemap({ items, width = 700, height = 360, focusedId, onSelect 
 
   while (remaining.length > 0) {
     const it = remaining[0];
-    const frac = it.value / remaining.reduce((s, r) => s + r.value, 0);
+    const remainingTotal = remaining.reduce((s, r) => s + r.value, 0);
+    // Even split when values sum to 0, avoiding a divide-by-zero -> Infinity layout.
+    const frac = remainingTotal > 0 ? it.value / remainingTotal : 1 / remaining.length;
     if (horizontal) {
       const cellW = w * frac;
       cells.push({ ...it, x, y, w: cellW, h });
@@ -47,7 +49,7 @@ export function Treemap({ items, width = 700, height = 360, focusedId, onSelect 
   return (
     <div className="treemap-stage" style={{ width, height }}>
       {cells.map((c) => {
-        const intensity = (c.score || 50) / 100;
+        const intensity = (c.score ?? 50) / 100;
         const bg = `color-mix(in oklab, var(--price-cheaper) ${10 + intensity * 35}%, var(--bg-elevated))`;
         const id = c.id ?? c.label;
         const isFocused = focusedId === id;

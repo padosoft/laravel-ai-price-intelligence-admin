@@ -132,6 +132,7 @@ export function PriceLineChart({
 
       {series.map((s, i) => {
         const pts: Point[] = s.data.map((p) => [x(p.t.getTime()), y(p.price)]);
+        if (pts.length === 0) return null;
         const last = pts[pts.length - 1];
         const first = pts[0];
         const area =

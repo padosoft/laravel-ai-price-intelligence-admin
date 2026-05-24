@@ -38,7 +38,8 @@ export interface PriceDeltaProps {
  * within ±0.5% = parity (grey).
  */
 export function PriceDelta({ pct, abs, vs = 'us' }: PriceDeltaProps) {
-  const cls = pct > 0.5 ? 'pricier' : pct < -0.5 ? 'cheaper' : 'parity';
+  // Parity band is ±1% (matches design.css + TEMPLATE §2).
+  const cls = pct > 1 ? 'pricier' : pct < -1 ? 'cheaper' : 'parity';
   const sign = pct > 0 ? '+' : '';
   const Arrow = pct > 0 ? I.ArrowUp : pct < 0 ? I.ArrowDown : null;
   return (
