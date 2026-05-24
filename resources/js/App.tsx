@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
+import { CommandPalette } from '@/components/layout/CommandPalette';
+import { TenantSwitcher } from '@/components/layout/TenantSwitcher';
 import { ROUTE_TITLES } from '@/components/layout/nav';
 import { ToastProvider } from '@/components/ds';
 import type { NavCounts, RouteKey, Tenant, TenantFeatures, Theme, User } from '@/lib/types';
@@ -18,15 +20,34 @@ const DEMO_TENANT: Tenant = { id: 'acme-it', code: 'ACME', name: 'Acme Italia', 
 const DEMO_USER: User = { name: 'Lorenzo Padovani', initials: 'LP', role: 'Pricing lead' };
 const DEMO_FEATURES: TenantFeatures = { review_insight: true, repricer: true, ai_act: true };
 const DEMO_COUNTS: NavCounts = { matches: 12, alerts: 3, anomalies: 5 };
+const DEMO_TENANTS: Tenant[] = [
+  { id: 'acme-it', code: 'ACME', name: 'Acme Italia', plan: 'Enterprise', current: true },
+  { id: 'acme-es', code: 'ACES', name: 'Acme España', plan: 'Growth' },
+  { id: 'acme-de', code: 'ACDE', name: 'Acme Deutschland', plan: 'Growth' },
+  { id: 'demo', code: 'DEMO', name: 'Demo workspace', plan: 'Trial' },
+];
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
   const [route, setRoute] = useState<RouteKey>('dashboard');
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [tenantOpen, setTenantOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const navigate = useCallback((next: RouteKey) => {
     setRoute(next);
@@ -46,6 +67,8 @@ export default function App() {
         features={DEMO_FEATURES}
         theme={theme}
         onTheme={setTheme}
+        onOpenPalette={() => setPaletteOpen(true)}
+        onOpenTenant={() => setTenantOpen(true)}
       >
         <div className="page" data-testid="app-page">
           <div className="page-head">
@@ -61,6 +84,14 @@ export default function App() {
           </div>
         </div>
       </AppShell>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onNavigate={navigate}
+        onOpenCompetitor={() => navigate('competitor_detail')}
+      />
+      <TenantSwitcher open={tenantOpen} onClose={() => setTenantOpen(false)} tenants={DEMO_TENANTS} />
     </ToastProvider>
   );
 }

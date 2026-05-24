@@ -39,6 +39,7 @@ export function Topbar({
         onClick={onOpenTenant}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 8px', width: 'auto', borderRadius: 6 }}
         title="Switch tenant"
+        aria-label="Switch tenant"
       >
         <div
           className="avatar"

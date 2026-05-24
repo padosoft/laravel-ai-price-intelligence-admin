@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '@/App';
 
@@ -24,5 +24,24 @@ describe('App shell', () => {
     const initial = document.documentElement.dataset.theme;
     await user.click(screen.getByRole('button', { name: 'Toggle theme' }));
     expect(document.documentElement.dataset.theme).not.toBe(initial);
+  });
+
+  it('opens the command palette with Ctrl/Cmd+K and jumps to a route', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.keyboard('{Control>}k{/Control}');
+    const palette = await screen.findByRole('dialog', { name: 'Command palette' });
+    const input = within(palette).getByPlaceholderText(/Search products, competitors/);
+    await user.type(input, 'forecast');
+    await user.click(within(palette).getByRole('button', { name: /Forecasts/ }));
+    expect(screen.getByRole('heading', { name: 'Forecasts' })).toBeInTheDocument();
+  });
+
+  it('opens the tenant switcher from the topbar', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /Switch tenant/ }));
+    expect(screen.getByRole('heading', { name: 'Switch tenant' })).toBeInTheDocument();
+    expect(screen.getByText('Acme España')).toBeInTheDocument();
   });
 });

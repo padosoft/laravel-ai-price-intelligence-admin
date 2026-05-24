@@ -29,7 +29,7 @@ export function Modal({ open, onClose, title, sub, children, footer, width }: Mo
       <div className="modal" role="dialog" aria-modal="true" style={width ? { width } : undefined}>
         {title && (
           <div className="modal-head">
-            <div className="modal-title">{title}</div>
+            <h2 className="modal-title">{title}</h2>
             {sub && <div className="modal-sub">{sub}</div>}
           </div>
         )}

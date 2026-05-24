@@ -10,7 +10,8 @@
 /* Project overrides: the prototype rendered some interactive rows as <div>; we use
    <button> for keyboard/AT accessibility, so restore the full-width block layout the
    div-designed classes assume. Kept here (not in the verbatim design.css). */
-button.nav-item {
+button.nav-item,
+button.palette-item {
   width: 100%;
   text-align: left;
 }

@@ -67,3 +67,19 @@ export interface NavGroup {
   label: string;
   items: NavItem[];
 }
+
+/** Minimal product shape the command palette searches over. */
+export interface PaletteProduct {
+  id: string;
+  name: string;
+  sku: string;
+  ourCents: number;
+}
+
+/** Minimal competitor-listing shape the command palette searches over. */
+export interface PaletteCompetitor {
+  id: string;
+  host: string;
+  label: string;
+  priceCents: number;
+}
