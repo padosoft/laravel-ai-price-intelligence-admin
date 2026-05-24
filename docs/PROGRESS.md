@@ -28,7 +28,36 @@ CI → GitHub-Copilot loop, auto-merge authorized.
 - [ ] A7 — Real-time alerts (SSE) + i18n polish + a11y/dark parity.
 - [ ] A8 — README wow + screenshots, consolidate LESSON, tag v1.0.0 + release.
 
-## Next action
+## ⚠️ Core API gap (discovered at A2 start — 2026-05-24)
+The core v1.0.0 exposes only: `/health`, catalog (index/show/bulk/csv/delete), targets
+(index/store/update/discover:now), matches (index/approve/reject/competitor-products),
+alerts (index/ack), webhook-subscriptions (CRUD/test). The admin's 19 screens + PROJECT.md §7
+need MORE. Per the core-gap-backfill policy, these are implemented + released in the CORE first,
+then the admin wires them (no mock-and-ship):
+
+Missing core endpoints to backfill (grouped):
+- **Auth/identity**: `GET /tenants/me` (tenant + features + abilities) — blocks AuthProvider.
+- **Observations/analytics**: `GET /observations/prices`, `/observations/prices/diff`,
+  `GET /competitor-products/{id}` (detail + latest snapshots), stock/promo/content snapshots.
+- **Intelligence**: `GET /forecasts`, `/anomalies`, `/narratives`, `/content-gaps`,
+  `/assortment-gaps`, `/reviews` (insights).
+- **Pricing**: `GET/POST/PATCH/DELETE /rules`, `POST /rules/{id}/simulate`, `GET /rule-decisions`.
+- **System**: `GET/POST /api-keys` (+revoke), `GET /audit/fetch-logs`, `GET /jobs/stats`,
+  `POST /targets/{id}/scrape:now`, `GET /alerts/stream` (SSE), `GET /openapi.json`.
+
+Plan: build A2 admin-side infra (types mirroring PROJECT §7, typed client, TanStack Query, i18n,
+AuthProvider shape) now; backfill the core API + release (core v1.1.x); then A3–A6 wire each screen
+against the real endpoints. Reviews/Repricer/Compliance reads gate on core feature flags.
+
+## Next action (A2)
+Build admin-side infra on `feat/admin-a2-api-auth-i18n`: TS types mirroring PROJECT §7, typed
+fetch client (cookie + X-Api-Key, RFC-7807 error mapping), TanStack Query provider + base hooks,
+i18next IT/EN, AuthProvider (shape ready for `GET /tenants/me`). Then switch to the CORE repo to
+backfill the missing API endpoints (start with `/tenants/me`) + release core v1.1.x, return here,
+bump the core dependency, and wire the real auth/feature flags before A3.
+
+---
+### A1 (done) detail
 A1 progress on `feat/admin-a1-design-system`: DONE so far — design.css port, ds primitives + Vitest,
 shell nav config + Sidebar + Topbar + AppShell, App wired with theme persistence + routing + demo
 identity, a11y fixes (main landmark, AA contrast tokens), font @import hoisted. All local gates green
