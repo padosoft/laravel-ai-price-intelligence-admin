@@ -24,21 +24,24 @@
 > **Sempre ultima stable al momento di `npm install`.** Versioni minime (coerenti con
 > `laravel-pii-redactor-admin`):
 
-| Tool | Min | Note |
-|---|---|---|
-| React | ≥ 19 | con React Compiler abilitato se stabile |
-| Vite | ≥ 8 | dev server + build |
-| TypeScript | ≥ 6 | strict mode |
-| TailwindCSS | ≥ 4 | `@theme inline`, CSS-first config |
-| Vitest | ≥ 4 | unit/component |
-| Playwright | ≥ 1.59 | e2e |
-| Lucide-react | latest | icone |
-| @tanstack/react-query | latest | server state (vedi IMPLEMENTATION.md) |
-| i18next + react-i18next | latest | IT/EN |
-| Recharts | latest | charts (ECharts opt-in per dashboard heavy) |
+> Colonna "Min" = floor desiderato; colonna "Pinned (A0)" = versione effettivamente installata
+> (latest stable al momento dello scaffold).
 
-UI **custom** (design system in-house in `src/components/ds/`), **no shadcn/no Mantine** — coerenza
-con gli altri admin Padosoft. Node ≥ 24.
+| Tool | Min | Pinned (A0) | Note |
+|---|---|---|---|
+| React | ≥ 19 | 19 | con React Compiler abilitato se stabile |
+| Vite | ≥ 6 | 6 | dev server + build |
+| TypeScript | ≥ 5.7 | 5.7 | strict mode |
+| TailwindCSS | ≥ 4 | 4 | `@theme inline`, CSS-first config (`@tailwindcss/vite`) |
+| Vitest | ≥ 2 | 2 | unit/component |
+| Playwright | ≥ 1.49 | 1.49 | e2e (+ `@axe-core/playwright`) |
+| Lucide-react | latest | latest | icone |
+| @tanstack/react-query | latest | 5 | server state (vedi IMPLEMENTATION.md) |
+| i18next + react-i18next | latest | 24 | IT/EN |
+| Recharts | latest | 3 | charts (ECharts opt-in per dashboard heavy) |
+
+UI **custom** (design system in-house in `resources/js/components/ds/`), **no shadcn/no Mantine** —
+coerenza con gli altri admin Padosoft. Node ≥ 24.
 
 ---
 
@@ -57,7 +60,7 @@ con gli altri admin Padosoft. Node ≥ 24.
 
 ## 2. Design tokens (Tailwind 4 `@theme`)
 
-`src/styles/globals.css`:
+`resources/js/styles/globals.css`:
 ```css
 @import "tailwindcss";
 
@@ -106,7 +109,7 @@ Spacing scale: usare la default Tailwind (4/8/12/16/24/32/48). Breakpoints stand
 
 ---
 
-## 3. Component library (`src/components/ds/`)
+## 3. Component library (`resources/js/components/ds/`)
 
 Tutti i primitives sono custom, headless-friendly, accessibili (ARIA), keyboard-nav, theme-aware.
 
@@ -134,7 +137,7 @@ Tutti i primitives sono custom, headless-friendly, accessibili (ARIA), keyboard-
 | `PriceDelta` | mostra Δ% con freccia e colore pricing-semantic |
 | `ThemeToggle` / `LangSwitch` | dark/light, IT/EN |
 
-### Chart kit (`src/components/charts/`)
+### Chart kit (`resources/js/components/charts/`)
 - `PriceLineChart` — storico prezzo multi-competitor + nostra linea + banda promo.
 - `ForecastChart` — linea storica + forecast tratteggiato + confidence interval shaded + badge AI.
 - `AnomalyScatter` — dot plot con outlier evidenziati.
@@ -301,7 +304,7 @@ delivered?). Real-time append via SSE. Click → contesto (prodotto/competitor).
 ## 7. Internationalization (i18n)
 
 - `i18next` + `react-i18next` + `i18next-http-backend` (lazy load namespace).
-- Default **IT**, fallback **EN**. File `src/lib/i18n/locales/{it,en}/{common,catalog,...}.json`.
+- Default **IT**, fallback **EN**. File `resources/js/lib/i18n/locales/{it,en}/{common,catalog,...}.json`.
 - Numeri/valute/date via `Intl.NumberFormat`/`Intl.DateTimeFormat` con locale attivo.
 - Estrazione chiavi via `i18next-parser` (script `i18n:extract`).
 - Nessuna stringa hard-coded nei componenti: sempre `t('key')`.

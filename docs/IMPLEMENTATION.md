@@ -27,23 +27,23 @@ laravel-ai-price-intelligence-admin/
 ├─ package.json             (stack TEMPLATE.md §0)
 ├─ vite.config.ts · tsconfig.json · vitest.config.ts · playwright.config.ts
 ├─ index.html
-├─ src/                     PHP side
+├─ config/price-intelligence-admin.php   (path, api_base_url, auth_mode, realtime)
+├─ src/                     PHP side (PSR-4 Padosoft\PriceIntelligenceAdmin\)
 │  ├─ PriceIntelligenceAdminServiceProvider.php
-│  ├─ Http/Controllers/{PanelController,AssetsController}.php
-│  ├─ Http/Middleware/EnsureAdmin.php
-│  └─ Config/price-intelligence-admin.php
+│  ├─ Http/Controllers/PanelController.php
+│  └─ Http/Middleware/EnsureAdmin.php
 ├─ resources/
 │  ├─ views/app.blade.php   wrapper che monta l'SPA + inietta config runtime
-│  └─ dist/                 output `vite build` (asset hashed)
-├─ src-ui/  (oppure src/ frontend — vedi nota)   React app (TEMPLATE.md §9)
+│  ├─ js/                   React app (TEMPLATE.md §9)
+│  └─ dist/                 output `vite build` (asset hashed + .vite/manifest.json)
 ├─ tests/   Feature(PHPUnit) · unit(Vitest) · e2e(Playwright)
-├─ screens/
-└─ docs/    TEMPLATE.md · IMPLEMENTATION.md
+└─ docs/    TEMPLATE.md · IMPLEMENTATION.md · LESSON.md · PROGRESS.md
 ```
 
-> **Nota cartelle**: per evitare collisione tra `src/` PHP (PSR-4) e `src/` React, il frontend
-> vive in `resources/js/` **oppure** in `src-ui/`. Scegliere coerentemente con
-> `laravel-pii-redactor-admin` durante lo scaffolding (Phase 0). In questo doc: `resources/js/`.
+> **Nota cartelle (realizzato in A0)**: per evitare collisione tra `src/` PHP (PSR-4) e il frontend,
+> la React app vive in **`resources/js/`**. Gli asset buildati sono pubblicati sotto
+> `public/vendor/price-intelligence-admin/` e serviti staticamente (nessun `AssetsController`
+> dedicato); il `PanelController` serve solo il wrapper Blade dell'SPA.
 
 ### 1.1 ServiceProvider (PHP)
 - Registra route panel (`/admin/price-intelligence/{any?}` → `PanelController@index`).
