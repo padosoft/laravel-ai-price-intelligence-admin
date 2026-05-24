@@ -99,6 +99,7 @@ export default function App() {
         onClose={() => setPaletteOpen(false)}
         onNavigate={navigate}
         onOpenCompetitor={() => navigate('competitor_detail')}
+        features={DEMO_FEATURES}
       />
       <TenantSwitcher open={tenantOpen} onClose={() => setTenantOpen(false)} tenants={DEMO_TENANTS} />
     </ToastProvider>

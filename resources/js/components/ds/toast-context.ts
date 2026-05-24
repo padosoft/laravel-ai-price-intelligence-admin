@@ -6,6 +6,7 @@ export interface ToastInput {
   title: string;
   body?: string;
   kind?: ToastKind;
+  /** Auto-dismiss delay in milliseconds (default 3600). */
   duration?: number;
 }
 

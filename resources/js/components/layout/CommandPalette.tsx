@@ -1,7 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { I } from '@/components/ds/icons';
 import { currencySymbol } from '@/lib/format';
-import type { PaletteCompetitor, PaletteProduct, RouteKey } from '@/lib/types';
+import { isFeatureVisible } from './nav';
+import type { PaletteCompetitor, PaletteProduct, RouteKey, TenantFeatures } from '@/lib/types';
 
 interface PaletteItem {
   label: string;
@@ -23,9 +24,18 @@ export interface CommandPaletteProps {
   onOpenCompetitor: (id: string) => void;
   products?: PaletteProduct[];
   competitors?: PaletteCompetitor[];
+  features?: TenantFeatures;
 }
 
-const NAV_TARGETS: { label: string; hint: string; icon: keyof typeof I; route: RouteKey }[] = [
+interface NavTarget {
+  label: string;
+  hint: string;
+  icon: keyof typeof I;
+  route: RouteKey;
+  feature?: keyof TenantFeatures;
+}
+
+const NAV_TARGETS: NavTarget[] = [
   { label: 'Dashboard', hint: 'home', icon: 'Home', route: 'dashboard' },
   { label: 'Matches review', hint: 'review queue', icon: 'Compare', route: 'matches' },
   { label: 'Prices explorer', hint: 'charts', icon: 'Tag', route: 'prices' },
@@ -33,11 +43,11 @@ const NAV_TARGETS: { label: string; hint: string; icon: keyof typeof I; route: R
   { label: 'Forecasts', hint: 'intelligence', icon: 'TrendUp', route: 'forecasts' },
   { label: 'Weekly narrative', hint: 'AI digest', icon: 'FileText', route: 'narrative' },
   { label: 'Assortment gaps', hint: 'treemap', icon: 'Layers', route: 'assortment' },
-  { label: 'Repricer rules', hint: 'pricing', icon: 'Wrench', route: 'repricer' },
+  { label: 'Repricer rules', hint: 'pricing', icon: 'Wrench', route: 'repricer', feature: 'repricer' },
   { label: 'Alerts inbox', hint: 'system', icon: 'Bell', route: 'alerts' },
   { label: 'Webhooks', hint: 'system', icon: 'Webhook', route: 'webhooks' },
   { label: 'API keys', hint: 'system', icon: 'Key', route: 'api_keys' },
-  { label: 'Compliance & AI log', hint: 'EU AI Act', icon: 'Shield', route: 'compliance' },
+  { label: 'Compliance & AI log', hint: 'EU AI Act', icon: 'Shield', route: 'compliance', feature: 'ai_act' },
   { label: 'Settings', hint: 'system', icon: 'Settings', route: 'settings' },
 ];
 
@@ -49,6 +59,7 @@ export function CommandPalette({
   onOpenCompetitor,
   products = [],
   competitors = [],
+  features,
 }: CommandPaletteProps) {
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
@@ -65,7 +76,7 @@ export function CommandPalette({
 
   const navItems = useMemo<PaletteItem[]>(
     () =>
-      NAV_TARGETS.map((n) => {
+      NAV_TARGETS.filter((n) => isFeatureVisible(features, n.feature)).map((n) => {
         const IconCmp = I[n.icon];
         return {
           label: n.label,
@@ -74,7 +85,7 @@ export function CommandPalette({
           action: () => onNavigate(n.route),
         };
       }),
-    [onNavigate],
+    [onNavigate, features],
   );
 
   const productItems = useMemo<PaletteItem[]>(

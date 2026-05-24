@@ -35,7 +35,7 @@ export interface PriceDeltaProps {
 
 /**
  * Pricing-semantic delta: competitor pricier than us = SAFE (green), cheaper = THREAT (red),
- * within ±0.5% = parity (grey).
+ * within ±1% = parity (grey).
  */
 export function PriceDelta({ pct, abs, vs = 'us' }: PriceDeltaProps) {
   // Parity band is ±1% (matches design.css + TEMPLATE §2).

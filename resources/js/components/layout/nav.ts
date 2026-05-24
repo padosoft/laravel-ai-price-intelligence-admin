@@ -1,4 +1,14 @@
-import type { NavGroup, RouteKey } from '@/lib/types';
+import type { NavGroup, RouteKey, TenantFeatures } from '@/lib/types';
+
+/**
+ * A feature-gated nav entry is visible unless the core explicitly disables its flag.
+ * Single source of truth shared by the Sidebar and the command palette so both stay
+ * consistent (real flags come from GET /tenants/me in A2).
+ */
+export function isFeatureVisible(features: TenantFeatures | undefined, feature?: keyof TenantFeatures): boolean {
+  if (!feature) return true;
+  return features?.[feature] !== false;
+}
 
 /** Sidebar navigation groups (ported from shell.jsx NAV_GROUPS). */
 export const NAV_GROUPS: NavGroup[] = [

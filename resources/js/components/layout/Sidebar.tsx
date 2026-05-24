@@ -1,7 +1,7 @@
 import { I } from '@/components/ds/icons';
 import { BrandMark } from '@/components/ds/pricing';
 import type { NavCounts, RouteKey, Tenant, TenantFeatures, User } from '@/lib/types';
-import { NAV_GROUPS } from './nav';
+import { NAV_GROUPS, isFeatureVisible } from './nav';
 
 export interface SidebarProps {
   route: RouteKey;
@@ -29,7 +29,7 @@ export function Sidebar({ route, onNavigate, counts = {}, features = {}, user, t
           <div className="nav-section" key={group.label}>
             <div className="nav-label">{group.label}</div>
             {group.items.map((item) => {
-              if (item.feature && features[item.feature] === false) return null;
+              if (!isFeatureVisible(features, item.feature)) return null;
               const IconCmp = I[item.icon] ?? I.Hash;
               const badge = item.badgeKey ? counts[item.badgeKey] : null;
               return (

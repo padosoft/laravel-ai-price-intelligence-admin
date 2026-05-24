@@ -66,7 +66,11 @@ export function Drawer({ open, onClose, title, children, actions }: DrawerProps)
       >
         <div className="drawer-head">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <strong id={titleId} style={{ fontSize: 13 }}>{title}</strong>
+            {title && (
+              <strong id={titleId} style={{ fontSize: 13 }}>
+                {title}
+              </strong>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {actions}

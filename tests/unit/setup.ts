@@ -14,7 +14,14 @@ window.__PI_ADMIN__ = {
 
 // jsdom in this environment doesn't expose a working localStorage / matchMedia;
 // provide minimal in-memory stubs so theme persistence code runs under test.
-if (typeof window.localStorage?.getItem !== 'function') {
+// Accessing window.localStorage can itself throw in some configs, so probe defensively.
+let hasLocalStorage = false;
+try {
+  hasLocalStorage = typeof window.localStorage?.getItem === 'function';
+} catch {
+  hasLocalStorage = false;
+}
+if (!hasLocalStorage) {
   const store = new Map<string, string>();
   Object.defineProperty(window, 'localStorage', {
     configurable: true,
