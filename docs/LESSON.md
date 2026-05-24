@@ -15,6 +15,18 @@ Append learnings, environment quirks, and Copilot/CI feedback here. Carry the co
 - Playwright runs against `vite preview` of the built SPA with MSW fixtures → deterministic, no live
   Laravel backend needed in CI.
 
+## Copilot review findings (A0)
+- **Vite 5+ manifest location**: `build.manifest: true` emits to `<outDir>/.vite/manifest.json`
+  (not the outDir root as in Vite ≤4). The Blade/asset resolver checks both for robustness.
+- **PHP closures don't error on extra args**: `Gate::define('x', fn () => ...)` called with a user
+  arg does NOT throw ArgumentCountError; still, accept `$user` for the idiomatic gate signature.
+- **larastan view-string**: `view('pkg::name')` trips the view-string check for namespaced package
+  views; inject `Illuminate\Contracts\View\Factory` and call `->make()` (plain string param) instead.
+- **Keep Blade dumb**: manifest parsing lives in `PanelController` (cached by manifest mtime), not in
+  the Blade template.
+- **Local `copilot --autopilot --yolo`** actively edits + commits files (not report-only). Always
+  re-verify all gates yourself after it runs; reconcile any namespace/layout changes it introduces.
+
 ## Per-phase loop
 - Same strict loop as the core: local tests + local Copilot → push → CI green + GitHub Copilot zero
   comments → squash-merge + delete branch → next phase.

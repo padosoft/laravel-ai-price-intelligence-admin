@@ -10,8 +10,14 @@ use Padosoft\PriceIntelligenceAdmin\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
- * Tests that EnsureAdmin correctly enforces authentication and authorization
- * for both cookie/session and Sanctum bearer-token auth paths.
+ * Covers the cookie/session authorization path of EnsureAdmin:
+ *  - unauthenticated requests are rejected (401);
+ *  - an authenticated user is denied (403) both when no gate is defined (deny by
+ *    default) and when the gate explicitly denies;
+ *  - an authenticated user the gate allows reaches the panel (200).
+ *
+ * The Sanctum bearer-token ability branch runs against the full Sanctum stack and is
+ * exercised in the auth phase (A2), not here.
  */
 final class EnsureAdminTest extends TestCase
 {
@@ -37,10 +43,21 @@ final class EnsureAdminTest extends TestCase
     }
 
     #[Test]
-    public function authenticated_user_without_gate_is_forbidden(): void
+    public function authenticated_user_is_forbidden_when_no_gate_is_defined(): void
     {
-        // Gate denies → 403. (Gate closures receive the authenticated user as the
-        // first argument; accept and ignore it for the idiomatic signature.)
+        // Deny-by-default: with the 'price-intelligence:admin' ability undefined,
+        // Gate::allows() returns false → 403. This is the secure default for hosts
+        // that haven't wired up the ability yet.
+        $this->actingAs(new FakeAdminUser)
+            ->get('/admin/price-intelligence')
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function authenticated_user_denied_by_gate_is_forbidden(): void
+    {
+        // Gate explicitly denies → 403. (Gate closures receive the authenticated user
+        // as the first argument; accept and ignore it for the idiomatic signature.)
         Gate::define('price-intelligence:admin', fn ($user) => false);
 
         $this->actingAs(new FakeAdminUser)
