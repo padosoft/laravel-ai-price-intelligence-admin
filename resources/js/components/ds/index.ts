@@ -1,7 +1,8 @@
 export { I, type IconName } from './icons';
 export { StatusBadge, type StatusBadgeProps } from './Badge';
 export { Sparkline, type SparklineProps } from './Sparkline';
-export { ToastProvider, useToast, type ToastInput, type ToastKind } from './Toast';
+export { ToastProvider } from './Toast';
+export { useToast, type ToastInput, type ToastKind } from './toast-context';
 export { Modal, type ModalProps } from './Modal';
 export { Drawer, type DrawerProps } from './Drawer';
 export { Kbd, Skeleton, type SkeletonProps } from './Misc';

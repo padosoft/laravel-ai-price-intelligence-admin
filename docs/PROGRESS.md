@@ -29,9 +29,12 @@ CI → GitHub-Copilot loop, auto-merge authorized.
 - [ ] A8 — README wow + screenshots, consolidate LESSON, tag v1.0.0 + release.
 
 ## Next action
-Continue A1 on `feat/admin-a1-design-system`: port `ui.jsx` primitives to `resources/js/components/ds/`
-(+ `lib/format.ts`), then `shell.jsx` and `charts.jsx`. Add Vitest for primitives + theme toggle.
-Then local-Copilot loop → push → CI green → GitHub-Copilot loop → squash-merge → A2.
+A1 progress on `feat/admin-a1-design-system`: DONE so far — design.css port, ds primitives + Vitest,
+shell nav config + Sidebar + Topbar + AppShell, App wired with theme persistence + routing + demo
+identity, a11y fixes (main landmark, AA contrast tokens), font @import hoisted. All local gates green
+(typecheck/lint/vitest 15/build/e2e+axe). REMAINING for A1: port `shell.jsx` CommandPalette +
+TenantSwitcher (need catalog/competitor/tenant data — may pair with A2 mock layer) and `charts.jsx`
+chart kit. Then local-Copilot loop → push → CI → GitHub-Copilot loop → squash-merge → A2.
 
 ## Key facts
 - Frontend lives in `resources/js/` (avoids clash with PHP PSR-4 `src/`). Alias `@/*`.

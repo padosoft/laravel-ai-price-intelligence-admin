@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 /* Design system ported verbatim from the realized prototype (token system + semantic
@@ -5,3 +6,24 @@
    Tailwind so the prototype's tokens and component styles are the source of truth for
    pixel-perfect fidelity; Tailwind utilities remain available for layout. */
 @import "./design.css";
+
+/* Project overrides: the prototype rendered some interactive rows as <div>; we use
+   <button> for keyboard/AT accessibility, so restore the full-width block layout the
+   div-designed classes assume. Kept here (not in the verbatim design.css). */
+button.nav-item {
+  width: 100%;
+  text-align: left;
+}
+
+/* Accessibility: TEMPLATE.md §8 requires WCAG 2.1 AA contrast (>=4.5:1). The prototype's
+   tertiary text and live-pill green fall just under that, so nudge the tokens to the
+   nearest AA-passing values in both themes — visually near-identical, measurably compliant. */
+:root {
+  --text-tertiary: #6b6b73; /* was #8a8a93 (3.42:1 on white) -> ~5.0:1 */
+}
+[data-theme="dark"] {
+  --text-tertiary: #8e8e97; /* was #6e6e76 (sub-AA on near-black) -> AA on dark surfaces */
+}
+.live-pill { color: #0a7350; } /* darker green meets AA on the light accent tint */
+[data-theme="dark"] .live-pill { color: var(--accent); }
+

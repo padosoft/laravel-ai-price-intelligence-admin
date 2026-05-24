@@ -1,27 +1,5 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
-
-export type ToastKind = '' | 'error' | 'warn';
-
-export interface ToastInput {
-  title: string;
-  body?: string;
-  kind?: ToastKind;
-  duration?: number;
-}
-
-interface ToastEntry extends ToastInput {
-  id: string;
-}
-
-interface ToastApi {
-  push: (t: ToastInput) => void;
-}
-
-const ToastContext = createContext<ToastApi>({ push: () => {} });
-
-export function useToast(): ToastApi {
-  return useContext(ToastContext);
-}
+import { useCallback, useState, type ReactNode } from 'react';
+import { ToastContext, type ToastEntry, type ToastInput } from './toast-context';
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastEntry[]>([]);
