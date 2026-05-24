@@ -11,7 +11,9 @@ return [
     */
     'path' => env('PRICE_INTELLIGENCE_ADMIN_PATH', 'admin/price-intelligence'),
 
-    'middleware' => ['web'],
+    // The `auth` middleware ensures only authenticated users reach the panel.
+    // The `price-intelligence-admin` alias enforces the Gate / token-ability check.
+    'middleware' => ['web', 'auth', 'price-intelligence-admin'],
 
     /*
     |--------------------------------------------------------------------------
