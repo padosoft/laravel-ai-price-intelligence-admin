@@ -32,14 +32,14 @@ final class ViteAssets
             $manifest = json_decode((string) file_get_contents($path), true) ?: [];
             $chunk = $manifest[self::ENTRY] ?? null;
 
+            // A manifest may exist but not contain our entry (e.g. a stale/foreign build);
+            // fall through to the next candidate rather than giving up here.
             if ($chunk !== null) {
                 return [
                     'js' => $chunk['file'] ?? null,
                     'css' => $chunk['css'] ?? [],
                 ];
             }
-
-            break;
         }
 
         return ['js' => null, 'css' => []];
