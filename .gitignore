@@ -1,0 +1,23 @@
+# Node / frontend
+/node_modules
+/resources/dist
+/coverage
+/playwright-report
+/test-results
+/.playwright
+*.tsbuildinfo
+
+# PHP
+/vendor
+/build
+composer.lock
+.phpunit.result.cache
+
+# Env / editor
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea
+.vscode
+*.log
