@@ -8,6 +8,15 @@
 - **Repo**: https://github.com/padosoft/laravel-ai-price-intelligence-admin
 - **Consuma**: API `/api/v1` del core (vedi `laravel-ai-price-intelligence/docs/PROJECT.md` §7)
 
+> **Nota di allineamento allo scaffold realizzato (A0).** Questo documento è la spec di design
+> originale. Nel codice realizzato:
+> - Il frontend vive in **`resources/js/`** (non `src/`, riservato al PHP PSR-4). Quindi
+>   `src/components/ds/` → `resources/js/components/ds/`, `src/styles/globals.css` →
+>   `resources/js/styles/globals.css`, ecc.
+> - Le versioni nella colonna "Min" qui sotto sono **floor aspirazionali**; le versioni
+>   effettivamente installate (latest stable al momento di `npm install`) sono pinnate in
+>   `package.json`: React 19, Vite 6, TS 5.7, Tailwind 4, Vitest 2, Playwright 1.49, Recharts 3.
+
 ---
 
 ## 0. Stack & versioni

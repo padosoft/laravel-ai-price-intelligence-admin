@@ -45,10 +45,11 @@ final class EnsureAdmin
             return $next($request);
         }
 
-        // Cookie / session auth: delegate to the Gate.
-        // Host apps must define the 'price-intelligence:admin' Gate ability; if not
-        // defined Laravel defaults to denied, keeping the panel secure.
-        if (! Gate::allows('price-intelligence:admin')) {
+        // Cookie / session auth: delegate to the Gate, checking the user resolved from
+        // THIS request (the panel may run under a non-default guard, so Gate::forUser
+        // avoids authorizing against the default resolver's user). Host apps must define
+        // the 'price-intelligence:admin' ability; an undefined gate defaults to denied.
+        if (! Gate::forUser($user)->allows('price-intelligence:admin')) {
             abort(Response::HTTP_FORBIDDEN);
         }
 

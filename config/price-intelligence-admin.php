@@ -11,9 +11,11 @@ return [
     */
     'path' => env('PRICE_INTELLIGENCE_ADMIN_PATH', 'admin/price-intelligence'),
 
-    // The `auth` middleware ensures only authenticated users reach the panel.
-    // The `price-intelligence-admin` alias enforces the Gate / token-ability check.
-    'middleware' => ['web', 'auth', 'price-intelligence-admin'],
+    // `auth:sanctum` authenticates both Sanctum SPA cookie sessions and bearer
+    // personal-access-tokens (bare `auth` would reject token requests, breaking the
+    // documented headless fallback). `price-intelligence-admin` then enforces the
+    // admin ability (token ability or Gate). Host apps can override via env/publish.
+    'middleware' => ['web', 'auth:sanctum', 'price-intelligence-admin'],
 
     /*
     |--------------------------------------------------------------------------

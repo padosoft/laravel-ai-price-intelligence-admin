@@ -7,6 +7,12 @@
 - **Package**: `padosoft/laravel-ai-price-intelligence-admin`
 - **Core consumato**: `padosoft/laravel-ai-price-intelligence` (API `/api/v1`, vedi PROJECT.md §7)
 
+> **Nota di allineamento allo scaffold realizzato (A0).** Spec originale; nel codice realizzato il
+> frontend è in `resources/js/`, la config PHP in `config/price-intelligence-admin.php`, e il
+> ServiceProvider monta una sola catch-all route servita da `PanelController` (l'`AssetsController`
+> citato sotto non è necessario: gli asset buildati sono pubblicati sotto
+> `public/vendor/price-intelligence-admin/` e serviti staticamente).
+
 ---
 
 ## 1. Anatomia del package (dual: PHP + frontend)

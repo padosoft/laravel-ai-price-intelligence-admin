@@ -10,7 +10,7 @@ Append learnings, environment quirks, and Copilot/CI feedback here. Carry the co
 
 ## Tooling decisions
 - Stack pinned to latest stable at scaffold time: React 19, Vite 6, TS 5.7, Tailwind 4 (via
-  `@tailwindcss/vite`), Vitest 2, Playwright 1.49, TanStack Query 5, i18next 24, Recharts 2,
+  `@tailwindcss/vite`), Vitest 2, Playwright 1.49, TanStack Query 5, i18next 24, Recharts 3,
   Lucide. The TEMPLATE.md "min" column lists aspirational floors; `npm install` resolves actual latest.
 - Playwright runs against `vite preview` of the built SPA with MSW fixtures → deterministic, no live
   Laravel backend needed in CI.
