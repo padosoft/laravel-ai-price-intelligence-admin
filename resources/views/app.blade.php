@@ -9,16 +9,25 @@
         window.__PI_ADMIN__ = {!! \Illuminate\Support\Js::from($runtime) !!};
     </script>
     @php
-        $manifestPath = public_path('vendor/price-intelligence-admin/.vite/manifest.json');
+        // Vite 5+ writes the manifest to .vite/manifest.json; older Vite wrote it at the
+        // outDir root. Look in both so the panel works regardless of the build's Vite major.
+        $manifestCandidates = [
+            public_path('vendor/price-intelligence-admin/.vite/manifest.json'),
+            public_path('vendor/price-intelligence-admin/manifest.json'),
+        ];
         $entry = 'index.html';
         $assets = ['css' => [], 'js' => null];
-        if (is_file($manifestPath)) {
+        foreach ($manifestCandidates as $manifestPath) {
+            if (! is_file($manifestPath)) {
+                continue;
+            }
             $manifest = json_decode((string) file_get_contents($manifestPath), true) ?: [];
             $chunk = $manifest[$entry] ?? null;
             if ($chunk !== null) {
                 $assets['js'] = $chunk['file'] ?? null;
                 $assets['css'] = $chunk['css'] ?? [];
             }
+            break;
         }
         $base = rtrim(asset('vendor/price-intelligence-admin'), '/').'/';
     @endphp

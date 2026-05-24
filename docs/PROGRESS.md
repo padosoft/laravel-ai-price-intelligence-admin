@@ -31,6 +31,8 @@ Copilot review, then push branch `feat/admin-a0-scaffold` and open the PR.
 - Frontend lives in `resources/js/` (avoids clash with PHP PSR-4 `src/`). Alias `@/*`.
 - Vite `base` = `./` (relative — works under `vite preview` for e2e and when published under
   `/vendor/price-intelligence-admin/`); build → `resources/dist`; Blade resolves hashed asset URLs
-  from the published Vite manifest (`.vite/manifest.json`) via `asset()`.
+  from the published Vite manifest via `asset()`. Vite 5+ emits the manifest at
+  `.vite/manifest.json`; the Blade checks that path first and falls back to a root `manifest.json`
+  for older Vite builds.
 - UI source of truth: `~/Downloads/ai-price-intelligence-web-panel/project/` (~8000 lines, 19 screens).
 - Core API contract: `laravel-ai-price-intelligence/docs/PROJECT.md` §7 + `/api/v1`.

@@ -39,8 +39,9 @@ final class EnsureAdminTest extends TestCase
     #[Test]
     public function authenticated_user_without_gate_is_forbidden(): void
     {
-        // No gate defined → Gate::allows() returns false → 403.
-        Gate::define('price-intelligence:admin', fn () => false);
+        // Gate denies → 403. (Gate closures receive the authenticated user as the
+        // first argument; accept and ignore it for the idiomatic signature.)
+        Gate::define('price-intelligence:admin', fn ($user) => false);
 
         $this->actingAs(new FakeAdminUser)
             ->get('/admin/price-intelligence')
@@ -50,7 +51,7 @@ final class EnsureAdminTest extends TestCase
     #[Test]
     public function authenticated_user_with_gate_can_access_panel(): void
     {
-        Gate::define('price-intelligence:admin', fn () => true);
+        Gate::define('price-intelligence:admin', fn ($user) => true);
 
         $this->actingAs(new FakeAdminUser)
             ->get('/admin/price-intelligence')
