@@ -105,6 +105,14 @@ export async function mockFetch<T>(
     return handlers[key](query, body) as T;
   }
 
+  // Dynamic action paths.
+  if (method === 'POST' && /^\/targets\/\d+\/scrape:now$/.test(path)) {
+    return { data: { queued: 2 } } as T;
+  }
+  if (method === 'POST' && /^\/rules\/\d+\/simulate$/.test(path)) {
+    return { data: { rule_id: 0, strategy: 'undercut_pct', custom_not_simulated: false, decisions: [] } } as T;
+  }
+
   // Unregistered GET list endpoints resolve to an empty page so screens render.
   if (method === 'GET' && LIST_PATHS.includes(path)) {
     return emptyPage() as T;

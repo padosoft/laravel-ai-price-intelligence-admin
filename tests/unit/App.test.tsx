@@ -8,7 +8,8 @@ describe('App shell', () => {
     // Wait for auth to resolve (mock resolves /tenants/me synchronously in tests).
     await waitFor(() => expect(screen.getByText('price-intel')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /Dashboard/ })).toBeInTheDocument();
-    expect(screen.getByTestId('app-page')).toHaveTextContent('dashboard');
+    await waitFor(() => expect(screen.getByTestId('page-dashboard')).toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
   });
 
   it('navigates when a nav item is clicked', async () => {
@@ -16,8 +17,8 @@ describe('App shell', () => {
     render(<App />);
     await waitFor(() => screen.getByRole('button', { name: /Catalog/ }));
     await user.click(screen.getByRole('button', { name: /Catalog/ }));
+    expect(await screen.findByTestId('page-catalog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Catalog' })).toBeInTheDocument();
-    expect(screen.getByTestId('app-page')).toHaveTextContent('catalog');
   });
 
   it('toggles the theme on the document element', async () => {
@@ -32,7 +33,7 @@ describe('App shell', () => {
   it('opens the command palette with Ctrl/Cmd+K and jumps to a route', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await waitFor(() => screen.getByTestId('app-page'));
+    await waitFor(() => screen.getByTestId('page-dashboard'));
     await user.keyboard('{Control>}k{/Control}');
     const palette = await screen.findByRole('dialog', { name: 'Command palette' });
     const input = within(palette).getByPlaceholderText(/Search products, competitors/);
