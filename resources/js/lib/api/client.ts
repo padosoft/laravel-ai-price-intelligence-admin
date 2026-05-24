@@ -41,7 +41,8 @@ function buildUrl(path: string, query?: Query): string {
 /** Read the XSRF cookie Sanctum sets, for the X-XSRF-TOKEN header on mutations. */
 function xsrfToken(): string | null {
   const name = runtimeConfig.csrfCookie;
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
 }
 
@@ -67,7 +68,12 @@ async function request<T>(method: string, path: string, opts: RequestOptions = {
   if (res.status === 204) return undefined as T;
 
   const text = await res.text();
-  const json = text ? JSON.parse(text) : null;
+  let json: unknown = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    throw new ApiError(res.status, null, `HTTP ${res.status}: non-JSON response`);
+  }
 
   if (!res.ok) {
     const problem = (json ?? null) as ProblemDetails | null;

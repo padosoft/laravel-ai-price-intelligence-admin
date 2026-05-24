@@ -35,7 +35,7 @@ const DEMO_TENANTS: Tenant[] = [
 ];
 
 function AppContent() {
-  const { me, hasFeature } = useAuth();
+  const { me, hasFeature, isLoading, isError } = useAuth();
   const stats = useStats();
 
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
@@ -89,6 +89,23 @@ function AppContent() {
   };
 
   const title = (ROUTE_TITLES[route] ?? [route]).at(-1) ?? route;
+
+  // Guard: session expired or auth request failed — don't render a silently broken shell.
+  if (isError) {
+    return (
+      <div className="auth-error" role="alert" style={{ padding: '2rem', textAlign: 'center' }}>
+        <p>Unable to load your session. Please <a href="/login">sign in again</a>.</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="auth-loading" aria-live="polite" style={{ padding: '2rem', textAlign: 'center' }}>
+        <p>Loading…</p>
+      </div>
+    );
+  }
 
   return (
     <>
