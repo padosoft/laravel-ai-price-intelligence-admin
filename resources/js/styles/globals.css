@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 /* Design system ported verbatim from the realized prototype (token system + semantic
@@ -10,6 +9,12 @@
 /* Native form controls / scrollbars follow the active theme (TEMPLATE §2). */
 html[data-theme="dark"] { color-scheme: dark; }
 html[data-theme="light"] { color-scheme: light; }
+
+/* Point the design tokens at the self-hosted (fontsource) variable families. */
+:root {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+}
 
 /* Project overrides: the prototype rendered some interactive rows as <div>; we use
    <button> for keyboard/AT accessibility, so restore the full-width block layout the

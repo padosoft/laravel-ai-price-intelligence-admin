@@ -64,9 +64,12 @@ export function ForecastChart({
 
   return (
     <svg className="chart-svg" viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Price forecast">
-      <path d={ciArea} fill="var(--ai-color)" opacity="0.14" />
-
-      <rect x={splitX} y={padding.t} width={padding.l + innerW - splitX} height={innerH} fill="var(--ai-bg)" opacity="0.4" />
+      {forecast.length > 0 && (
+        <>
+          <path d={ciArea} fill="var(--ai-color)" opacity="0.14" />
+          <rect x={splitX} y={padding.t} width={padding.l + innerW - splitX} height={innerH} fill="var(--ai-bg)" opacity="0.4" />
+        </>
+      )}
 
       <g className="chart-grid">
         {yT.map((v, i) => (

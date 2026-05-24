@@ -24,13 +24,13 @@ export function Treemap({ items, width = 700, height = 360, focusedId, onSelect 
   let w = width;
   let h = height;
   let horizontal = w > h;
-  let remaining = [...items];
+  // Track the remaining sum incrementally so the layout is O(n), not O(n²).
+  let remainingTotal = items.reduce((s, r) => s + r.value, 0);
 
-  while (remaining.length > 0) {
-    const it = remaining[0];
-    const remainingTotal = remaining.reduce((s, r) => s + r.value, 0);
-    // Even split when values sum to 0, avoiding a divide-by-zero -> Infinity layout.
-    const frac = remainingTotal > 0 ? it.value / remainingTotal : 1 / remaining.length;
+  items.forEach((it, idx) => {
+    const left = items.length - idx;
+    // Even split when the remaining values sum to 0 (avoids divide-by-zero -> Infinity).
+    const frac = remainingTotal > 0 ? it.value / remainingTotal : 1 / left;
     if (horizontal) {
       const cellW = w * frac;
       cells.push({ ...it, x, y, w: cellW, h });
@@ -42,9 +42,9 @@ export function Treemap({ items, width = 700, height = 360, focusedId, onSelect 
       y += cellH;
       h -= cellH;
     }
-    remaining = remaining.slice(1);
+    remainingTotal -= it.value;
     horizontal = w > h;
-  }
+  });
 
   return (
     <div className="treemap-stage" style={{ width, height }}>
