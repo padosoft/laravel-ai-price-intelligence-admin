@@ -29,7 +29,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Padosoft\\PriceIntelligenceAdmin\\Tests\\": "tests/Feature/"
+            "Padosoft\\PriceIntelligenceAdmin\\Tests\\": "tests/"
         }
     },
     "scripts": {
