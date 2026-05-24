@@ -1,6 +1,7 @@
 import { runtimeConfig } from '@/config';
 import type { ProblemDetails } from './types';
 import { mockFetch } from './mocks';
+import { getBearerToken } from './token';
 
 export class ApiError extends Error {
   constructor(
@@ -54,12 +55,21 @@ async function request<T>(method: string, path: string, opts: RequestOptions = {
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const token = xsrfToken();
-  if (token && method !== 'GET') headers['X-XSRF-TOKEN'] = token;
+  const bearer = runtimeConfig.auth.mode === 'bearer';
+  if (bearer) {
+    // Headless / cross-domain: authenticate with a Sanctum personal token.
+    const token = getBearerToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } else {
+    // Cookie SPA (Sanctum): send the XSRF token on mutating requests.
+    const token = xsrfToken();
+    if (token && method !== 'GET') headers['X-XSRF-TOKEN'] = token;
+  }
 
   const res = await fetch(buildUrl(path, opts.query), {
     method,
-    credentials: 'include',
+    // Cookies only matter in SPA mode; bearer mode is stateless.
+    credentials: bearer ? 'omit' : 'include',
     headers,
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     signal: opts.signal,

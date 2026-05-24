@@ -13,7 +13,6 @@ import '@/lib/i18n';
 import type { NavCounts, RouteKey, Tenant, TenantFeatures, Theme, User } from '@/lib/types';
 
 const THEME_KEY = 'pi-admin-theme';
-const queryClient = createQueryClient();
 
 function readInitialTheme(): Theme {
   try {
@@ -36,7 +35,7 @@ const DEMO_TENANTS: Tenant[] = [
 
 function AppContent() {
   const { me, hasFeature, isLoading, isError } = useAuth();
-  const stats = useStats();
+  const stats = useStats({ enabled: !!me });
 
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
   const [route, setRoute] = useState<RouteKey>('dashboard');
@@ -153,6 +152,8 @@ function AppContent() {
 }
 
 export default function App() {
+  // One QueryClient per App mount (avoids cross-mount cache leaks in tests / HMR).
+  const [queryClient] = useState(createQueryClient);
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

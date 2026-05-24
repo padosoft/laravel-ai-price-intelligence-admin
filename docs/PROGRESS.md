@@ -51,7 +51,8 @@ against the real endpoints. Reviews/Repricer/Compliance reads gate on core featu
 
 ## Next action (A2)
 Build admin-side infra on `feat/admin-a2-api-auth-i18n`: TS types mirroring PROJECT §7, typed
-fetch client (cookie + X-Api-Key, RFC-7807 error mapping), TanStack Query provider + base hooks,
+fetch client (cookie + X-XSRF-TOKEN in SPA mode, Bearer token in headless mode; RFC-7807 error
+mapping), TanStack Query provider + base hooks,
 i18next IT/EN, AuthProvider (shape ready for `GET /tenants/me`). Then switch to the CORE repo to
 backfill the missing API endpoints (start with `/tenants/me`) + release core v1.1.x, return here,
 bump the core dependency, and wire the real auth/feature flags before A3.
