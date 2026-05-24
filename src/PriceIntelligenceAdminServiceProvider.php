@@ -32,6 +32,10 @@ final class PriceIntelligenceAdminServiceProvider extends ServiceProvider
 
     private function registerRoutes(): void
     {
+        if ($this->app->routesAreCached()) {
+            return;
+        }
+
         $config = $this->app['config'];
 
         Route::group([

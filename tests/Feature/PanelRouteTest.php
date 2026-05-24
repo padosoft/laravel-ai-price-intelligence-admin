@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Padosoft\PriceIntelligenceAdmin\Tests;
+namespace Padosoft\PriceIntelligenceAdmin\Tests\Feature;
 
+use Padosoft\PriceIntelligenceAdmin\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 final class PanelRouteTest extends TestCase
