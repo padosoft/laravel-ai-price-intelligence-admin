@@ -89,16 +89,16 @@ export function Prices() {
             </select>
           </div>
           <div className="form-row" style={{ margin: 0 }}>
-            <label>Range</label>
-            <div style={{ display: 'flex', gap: 4 }}>
+            <span className="group-label">Range</span>
+            <div style={{ display: 'flex', gap: 4 }} role="group" aria-label="Range">
               {RANGES.map((r) => (
-                <button key={r} type="button" className={`chip ${range === r ? 'active' : ''}`} style={{ padding: '4px 12px' }} onClick={() => setRange(r)}>{r}</button>
+                <button key={r} type="button" className={`chip ${range === r ? 'active' : ''}`} style={{ padding: '4px 12px' }} aria-pressed={range === r} onClick={() => setRange(r)}>{r}</button>
               ))}
             </div>
           </div>
           <div className="form-row" style={{ margin: 0, flex: 1, minWidth: 240 }}>
-            <label>Competitors</label>
-            <div className="tag-list">
+            <span className="group-label">Competitors</span>
+            <div className="tag-list" role="group" aria-label="Competitors">
               {HOSTS.map((h) => (
                 <button
                   key={h.host}

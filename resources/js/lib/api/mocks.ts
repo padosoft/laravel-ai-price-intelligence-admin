@@ -149,7 +149,10 @@ export async function mockFetch<T>(
   const cpDetail = method === 'GET' && path.match(/^\/competitor-products\/(\d+)$/);
   if (cpDetail) {
     const id = Number(cpDetail[1]);
-    const cp = COMPETITOR_LIST.find((c) => c.id === id) ?? COMPETITOR_LIST[0];
+    const cp = COMPETITOR_LIST.find((c) => c.id === id);
+    // Mirror the core's findOrFail: an unknown id is a 404, not a silent fall-through to
+    // the first listing (which would mask a broken link in the UI).
+    if (!cp) throw new Error('HTTP 404: competitor product not found');
     return {
       data: {
         competitor_product: cp,

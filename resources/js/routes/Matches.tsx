@@ -36,6 +36,15 @@ export function Matches() {
   const [flying, setFlying] = useState<Decision | null>(null);
   const [animKey, setAnimKey] = useState(0);
 
+  // Track pending animation timers so they can be cancelled on unmount (avoids a
+  // state update after the screen is navigated away mid-swipe).
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => { timers.current.forEach(clearTimeout); }, []);
+  const schedule = useCallback((fn: () => void, ms: number) => {
+    const t = setTimeout(fn, ms);
+    timers.current.push(t);
+  }, []);
+
   const decide = useCallback(
     (action: Decision) => {
       if (flying) return;
@@ -43,7 +52,9 @@ export function Matches() {
       if (!current) return;
       setFlying(action);
       setHistory((h) => [...h, { id: current.id, action, fresh: true, proposal: current }]);
-      setTimeout(() => setHistory((h) => h.map((x) => ({ ...x, fresh: false }))), 600);
+      // Clear the pulse only for this entry, so a rapid follow-up decision doesn't
+      // prematurely stop the previous pip's animation.
+      schedule(() => setHistory((h) => h.map((x) => (x.id === current.id ? { ...x, fresh: false } : x))), 600);
       const mutation = action === 'approve' ? approve : reject;
       // Optimistic: the card flies out immediately for a snappy queue, but the success
       // toast is only shown once the server confirms; a failure rolls the card back into
@@ -68,13 +79,13 @@ export function Matches() {
           setAnimKey((k) => k + 1);
         },
       });
-      setTimeout(() => {
+      schedule(() => {
         setLocalQueue((q) => q.slice(1));
         setFlying(null);
         setAnimKey((k) => k + 1);
       }, 340);
     },
-    [localQueue, flying, approve, reject, toast],
+    [localQueue, flying, approve, reject, toast, schedule],
   );
 
   const undo = useCallback(() => {

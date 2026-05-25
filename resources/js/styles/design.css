@@ -1799,7 +1799,8 @@ button { background: transparent; border: 0; padding: 0; cursor: pointer; }
   display: flex; flex-direction: column; gap: 5px;
   margin-bottom: 14px;
 }
-.form-row label {
+.form-row label,
+.form-row .group-label {
   font-size: 11.5px;
   font-weight: 500;
   color: var(--text-secondary);
