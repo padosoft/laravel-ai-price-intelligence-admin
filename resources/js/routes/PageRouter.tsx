@@ -5,6 +5,12 @@ import { Matches } from './Matches';
 import { Competitors } from './Competitors';
 import { CompetitorDetail } from './CompetitorDetail';
 import { Prices } from './Prices';
+import { Anomalies } from './Anomalies';
+import { Forecasts } from './Forecasts';
+import { Narrative } from './Narrative';
+import { Assortment } from './Assortment';
+import { ContentGap } from './ContentGap';
+import { Reviews } from './Reviews';
 import { ROUTE_TITLES } from '@/components/layout/nav';
 import type { RouteKey } from '@/lib/types';
 
@@ -50,6 +56,18 @@ export function PageRouter({ route, routeParams, onNavigate }: PageRouterProps) 
     }
     case 'prices':
       return <Prices />;
+    case 'anomalies':
+      return <Anomalies />;
+    case 'forecasts':
+      return <Forecasts />;
+    case 'narrative':
+      return <Narrative />;
+    case 'assortment':
+      return <Assortment />;
+    case 'content_gap':
+      return <ContentGap />;
+    case 'reviews':
+      return <Reviews />;
     default:
       return <ComingSoon route={route} />;
   }

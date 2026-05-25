@@ -3,12 +3,17 @@
 import type {
   Alert,
   Anomaly,
+  AssortmentGap,
   CompetitorListItem,
   CompetitorProduct,
+  ContentGap,
+  Forecast,
   MatchProposal,
   MonitoringTarget,
+  Narrative,
   PriceObservation,
   Product,
+  ReviewInsight,
 } from './types';
 
 export const PRODUCTS: Product[] = [
@@ -155,3 +160,39 @@ export const PRICE_SERIES_BY_CP: Record<number, PriceObservation[]> = {
   5004: seriesCp(5004, 124900, -50, 3000),
   5005: seriesCp(5005, 15900, 20, 400),
 };
+
+// ---- Intelligence (A5) ----
+
+export const FORECASTS: Forecast[] = [
+  { id: 7001, competitor_product_id: 5001, horizon_days: 14, forecast_price_cents: 74200, ci_low_cents: 71800, ci_high_cents: 76600, model_version: 'Statistical-MA-v2.1', is_ai_generated: true, generated_at: '2026-05-24T07:00:00Z' },
+  { id: 7002, competitor_product_id: 5004, horizon_days: 14, forecast_price_cents: 123100, ci_low_cents: 119000, ci_high_cents: 127200, model_version: 'Statistical-MA-v2.1', is_ai_generated: true, generated_at: '2026-05-24T07:00:00Z' },
+  { id: 7003, competitor_product_id: 5005, horizon_days: 30, forecast_price_cents: 16400, ci_low_cents: 15100, ci_high_cents: 17700, model_version: 'Statistical-MA-v2.1', is_ai_generated: true, generated_at: '2026-05-24T07:00:00Z' },
+];
+
+export const NARRATIVES: Narrative[] = [
+  {
+    id: 8101,
+    period: '2026-W21',
+    summary_md: '## Aggressive undercut on smartphones; TV category stabilizing.\n\nThe Italian smartphone market saw a coordinated price war this week — driven by Trovaprezzi and ePrice slashing the X1 Pro 128GB by up to 12%. Meanwhile TV stabilized after MediaWorld’s "TV Days" wound down. Three new competitor sites discovered. 27 alerts dispatched (4 high-severity).\n\n### Top movers (downward)\n- **Acme X1 Pro 128GB** · trovaprezzi.it −12.4% · €749 → €659\n- **Nova OLED 55"** · amazon.it −3.85% · €1,299 → €1,249\n\n### Suggested action\nInvestigate the Trovaprezzi civetta pattern (recurring Friday afternoons). Consider a counter-promo or temporary price-floor rule.',
+    highlights: { alerts: 27, high_severity: 4, new_competitors: 3 },
+    is_ai_generated: true,
+    generated_at: '2026-05-18T07:02:00Z',
+  },
+  { id: 8100, period: '2026-W20', summary_md: '## Quiet week.\n\nPrices broadly stable; 11 alerts, no high-severity anomalies.', highlights: { alerts: 11, high_severity: 0 }, is_ai_generated: true, generated_at: '2026-05-11T07:01:00Z' },
+];
+
+export const ASSORTMENT_GAPS: AssortmentGap[] = [
+  { id: 9201, competitor_source_id: 1, category_path: 'Smartphones', competitor_product_url: 'https://amazon.it/dp/B0AA', title: 'Rival Z9 256GB', importance_score: 92, status: 'open' },
+  { id: 9202, competitor_source_id: 2, category_path: 'TV & Home', competitor_product_url: 'https://mediaworld.it/p/qled-65', title: 'Rival QLED 65"', importance_score: 78, status: 'open' },
+  { id: 9203, competitor_source_id: 1, category_path: 'Audio', competitor_product_url: 'https://amazon.it/dp/B0AB', title: 'Rival SoundBar 5.1', importance_score: 64, status: 'open' },
+  { id: 9204, competitor_source_id: 7, category_path: 'Wearables', competitor_product_url: 'https://trovaprezzi.it/w', title: 'Rival Band 9', importance_score: 55, status: 'reviewing' },
+];
+
+export const CONTENT_GAPS: ContentGap[] = [
+  { id: 9301, product_id: 1, seo_score_delta: -34, missing_attributes: ['IP68 rating not mentioned', 'No 5G band list', 'Battery mAh missing'], title_recommendations: ['Acme X1 Pro 128GB 5G Smartphone — 6.7" 120Hz OLED, IP68, 65W'], description_recommendations: ['Lead with the 120Hz LTPO OLED and IP68; competitors all surface these in the first line.'], image_count_gap: 4, generated_at: '2026-05-24T06:00:00Z' },
+  { id: 9302, product_id: 3, seo_score_delta: -18, missing_attributes: ['Panel type (OLED) not in title', 'No HDR format list'], title_recommendations: ['Nova OLED 55" 4K 120Hz Smart TV — Dolby Vision, HDR10+'], description_recommendations: ['Mention Dolby Vision + 120Hz; two competitors rank above us on these terms.'], image_count_gap: 2, generated_at: '2026-05-24T06:00:00Z' },
+];
+
+export const REVIEWS: ReviewInsight[] = [
+  { id: 9401, competitor_product_id: 5001, period: '2026-W21', sentiment_score: 0.72, themes: [{ theme: 'Battery life', pos: 78, neg: 12, mentions: 612 }, { theme: 'Camera quality', pos: 81, neg: 8, mentions: 540 }, { theme: 'Display brightness', pos: 88, neg: 4, mentions: 421 }, { theme: 'Build quality', pos: 71, neg: 18, mentions: 388 }, { theme: 'Software / UX', pos: 52, neg: 28, mentions: 312 }], sample_count: 2148, is_ai_generated: true, generated_at: '2026-05-24T05:00:00Z' },
+];

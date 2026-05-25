@@ -17,6 +17,9 @@ export interface ForecastChartProps {
   width?: number;
   height?: number;
   padding?: Padding;
+  /** Label under the history/forecast boundary. Defaults to "now" — the boundary is the
+   * last observed point, which isn't necessarily today. */
+  splitLabel?: string;
 }
 
 /** Historical line + dashed forecast + shaded confidence-interval band (AI-flagged). */
@@ -27,6 +30,7 @@ export function ForecastChart({
   width = 720,
   height = 240,
   padding = { t: 12, r: 16, b: 28, l: 56 },
+  splitLabel = 'now',
 }: ForecastChartProps) {
   if (history.length === 0 && forecast.length === 0) {
     return <svg className="chart-svg" viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-label="Price forecast" />;
@@ -87,7 +91,7 @@ export function ForecastChart({
           {fmtChartDate(minX)}
         </text>
         <text x={splitX} y={padding.t + innerH + 16} textAnchor="middle">
-          today
+          {splitLabel}
         </text>
         <text x={padding.l + innerW} y={padding.t + innerH + 16} textAnchor="end">
           {fmtChartDate(maxX)}
