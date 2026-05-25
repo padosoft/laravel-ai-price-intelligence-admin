@@ -6,16 +6,16 @@ import { createQueryClient } from '@/lib/api/queryClient';
 import { resetMockState } from '@/lib/api/mocks';
 import { ToastProvider } from '@/components/ds';
 import { AuthProvider } from '@/state/AuthProvider';
-
-// The A6 mocks are stateful (generate/revoke/test mutate in-memory collections); reset
-// before each test so a generated key in one case can't leak into another.
-beforeEach(() => resetMockState());
 import { Repricer } from '@/routes/Repricer';
 import { Alerts } from '@/routes/Alerts';
 import { Webhooks } from '@/routes/Webhooks';
 import { ApiKeys } from '@/routes/ApiKeys';
 import { Compliance } from '@/routes/Compliance';
 import { Settings } from '@/routes/Settings';
+
+// The A6 mocks are stateful (generate/revoke/test mutate in-memory collections); reset
+// before each test so a generated key in one case can't leak into another.
+beforeEach(() => resetMockState());
 
 function wrap(ui: React.ReactElement) {
   return render(

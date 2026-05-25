@@ -66,7 +66,7 @@ export function Webhooks() {
                   <td>
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button type="button" className="btn sm" disabled={test.isPending} onClick={() => test.mutate(w.id, { onSuccess: () => toast.push({ title: 'Test event sent', body: w.url }), onError: () => toast.push({ title: 'Test failed', kind: 'error' }) })}>Test</button>
-                      <button type="button" className="btn sm danger" onClick={() => remove.mutate(w.id, { onSuccess: () => toast.push({ title: 'Subscription removed' }) })}>Delete</button>
+                      <button type="button" className="btn sm danger" disabled={remove.isPending} onClick={() => remove.mutate(w.id, { onSuccess: () => toast.push({ title: 'Subscription removed' }), onError: () => toast.push({ title: 'Remove failed', kind: 'error' }) })}>Delete</button>
                     </div>
                   </td>
                 </tr>

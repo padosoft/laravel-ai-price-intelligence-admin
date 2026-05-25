@@ -87,6 +87,8 @@ let mockAlerts = ALERTS.map((a) => ({ ...a }));
 let mockRules = RULES.map((r) => ({ ...r }));
 let mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
 let mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+let apiKeySeq = 90000;
+function nextApiKeyId(): number { return ++apiKeySeq; }
 
 export function resetMockState(): void {
   processedMatchIds.clear();
@@ -94,6 +96,7 @@ export function resetMockState(): void {
   mockRules = RULES.map((r) => ({ ...r }));
   mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
   mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+  apiKeySeq = 90000;
 }
 
 /** Registry keyed by "METHOD /path" (exact) or "METHOD /prefix/*" patterns. */
@@ -210,8 +213,10 @@ export async function mockFetch<T>(
   }
   if (method === 'POST' && path === '/api-keys') {
     const b = (body ?? {}) as { name?: string; scopes?: string[] };
-    const newKey = { id: Math.floor(Math.random() * 100000), name: b.name ?? 'New key', scopes: b.scopes ?? [], plaintext: `piprice_${Math.random().toString(36).slice(2, 14)}${Math.random().toString(36).slice(2, 14)}` };
-    mockApiKeys.push({ ...newKey, last_used_at: null, expires_at: null, revoked_at: null, created_at: new Date().toISOString() });
+    // Deterministic id/plaintext (monotonic counter) so mock behaviour and tests are stable.
+    const id = nextApiKeyId();
+    const newKey = { id, name: b.name ?? 'New key', scopes: b.scopes ?? [], plaintext: `piprice_mock${String(id).padStart(8, '0')}` };
+    mockApiKeys.push({ ...newKey, last_used_at: null, expires_at: null, revoked_at: null, created_at: '2026-05-25T00:00:00Z' });
     return { data: newKey } as T;
   }
   // Revoke API key

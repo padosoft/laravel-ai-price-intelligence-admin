@@ -210,7 +210,7 @@ export const RULES: RepricingRule[] = [
 ];
 
 export const RULE_DECISIONS: RuleDecision[] = [
-  { id: 6101, repricing_rule_id: 6001, product_id: 1, current_price_cents: 79900, suggested_price_cents: 76900, applied: false, reason: 'beat amazon.it (€769) by 2% → charm €749.00' },
+  { id: 6101, repricing_rule_id: 6001, product_id: 1, current_price_cents: 79900, suggested_price_cents: 76900, applied: false, reason: 'beat amazon.it (€784) by 2% → €769.00 (margin floor 18% ok)' },
   { id: 6102, repricing_rule_id: 6002, product_id: 3, current_price_cents: 129900, suggested_price_cents: 124900, applied: false, reason: 'match cheapest amazon.it €1249' },
 ];
 

@@ -99,7 +99,7 @@ export function ApiKeys() {
                           : <span className="badge success"><span className="dot" />active</span>}
                     </td>
                     <td>
-                      <button type="button" className="btn sm danger" disabled={inactive || revoke.isPending} onClick={() => revoke.mutate(k.id, { onSuccess: () => toast.push({ title: 'Key revoked' }) })}>Revoke</button>
+                      <button type="button" className="btn sm danger" disabled={inactive || revoke.isPending} onClick={() => revoke.mutate(k.id, { onSuccess: () => toast.push({ title: 'Key revoked' }), onError: () => toast.push({ title: 'Revoke failed', kind: 'error' }) })}>Revoke</button>
                     </td>
                   </tr>
                 );

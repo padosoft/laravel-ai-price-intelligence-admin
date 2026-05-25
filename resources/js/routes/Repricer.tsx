@@ -101,13 +101,28 @@ export function Repricer() {
                   <p className="card-sub">Strategy: <span className="mono">{selected.strategy}</span></p>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button type="button" className="btn sm" onClick={() => setStatus.mutate({ id: selected.id, status: selected.status === 'active' ? 'paused' : 'active' }, { onSuccess: () => toast.push({ title: selected.status === 'active' ? 'Rule paused' : 'Rule activated' }) })}>
+                  <button
+                    type="button"
+                    className="btn sm"
+                    disabled={setStatus.isPending}
+                    onClick={() => setStatus.mutate(
+                      { id: selected.id, status: selected.status === 'active' ? 'paused' : 'active' },
+                      { onSuccess: () => toast.push({ title: selected.status === 'active' ? 'Rule paused' : 'Rule activated' }), onError: () => toast.push({ title: 'Update failed', kind: 'error' }) },
+                    )}
+                  >
                     {selected.status === 'active' ? 'Pause' : 'Activate'}
                   </button>
                   <button type="button" className="btn sm" onClick={() => runSimulate(selected)} disabled={simulate.isPending}>
                     <I.Sparkle size={11} /> Simulate
                   </button>
-                  <button type="button" className="btn sm danger" onClick={() => remove.mutate(selected.id, { onSuccess: () => { setSelectedId(null); toast.push({ title: 'Rule deleted' }); } })}>Delete</button>
+                  <button
+                    type="button"
+                    className="btn sm danger"
+                    disabled={remove.isPending}
+                    onClick={() => remove.mutate(selected.id, { onSuccess: () => { setSelectedId(null); toast.push({ title: 'Rule deleted' }); }, onError: () => toast.push({ title: 'Delete failed', kind: 'error' }) })}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
               <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
@@ -142,7 +157,7 @@ export function Repricer() {
                     <thead><tr><th>Product</th><th className="right">Current</th><th className="right">Suggested</th><th className="right">Δ</th><th>Changed</th></tr></thead>
                     <tbody>
                       {simRows.map((d, i) => {
-                        const pct = d.current_price_cents && d.suggested_price_cents && d.current_price_cents !== 0 ? ((d.suggested_price_cents - d.current_price_cents) / d.current_price_cents) * 100 : null;
+                        const pct = d.current_price_cents != null && d.suggested_price_cents != null && d.current_price_cents !== 0 ? ((d.suggested_price_cents - d.current_price_cents) / d.current_price_cents) * 100 : null;
                         return (
                           <tr key={i}>
                             <td className="mono">#{d.product_id ?? '—'}</td>
