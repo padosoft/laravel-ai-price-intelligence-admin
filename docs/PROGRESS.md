@@ -3,10 +3,28 @@
 > Live resume state. Update after every meaningful step.
 
 ## Status
-Building the web admin panel for the core (released v1.0.0). One PR per phase, strict local-Copilot →
-CI → GitHub-Copilot loop, auto-merge authorized.
+Building the web admin panel for the core. One PR per phase, strict local-Copilot → CI →
+GitHub-Copilot loop, auto-merge authorized. Core consumed: **v1.2.0** (competitor-products list +
+match candidate metadata, released 2026-05-25).
 
-## Roadmap
+## Roadmap (live)
+- [x] **A0** — repo scaffold + tooling (PR #1).
+- [x] **A1** — design system + shell + charts (merged).
+- [x] **A2** — API client + Sanctum auth + TS types + i18n IT/EN + TanStack Query + mock layer (merged).
+- [x] **A3** — Dashboard, Catalog, Targets (pages-a) — PR #6 merged.
+- [~] **A4** — Matches (swipe deck), Competitors, CompetitorDetail (tabs), Prices (pages-b) —
+  branch `feat/admin-a4-screens-pages-b`, IN PROGRESS. Wired against the live core v1.2 contract:
+  `useMatches`/`useMatchActions` (approve/reject), `useCompetitors`, `useCompetitorDetail`,
+  `useCompetitorPrices`, `useFetchLogs`. New types: MatchProposal/MatchEvidence/CompetitorListItem.
+  40 Vitest + 4 Playwright (+axe) green; typecheck/lint/build clean. **Deferred to A7**: the
+  multi-competitor promo gantt (needs a promo-series endpoint — candidate core gap, not mocked) and
+  the `.badge`/`.price-delta` token contrast + `h1→h3` heading-order (prototype DS, a11y phase).
+- [ ] A5 — Anomalies, Forecasts, Narrative, Assortment, ContentGap, Reviews (pages-c).
+- [ ] A6 — Repricer, Alerts, Webhooks, ApiKeys, Compliance, Settings (pages-d).
+- [ ] A7 — Real-time alerts (SSE) + i18n polish + a11y/dark parity (incl. contrast token + heading-order sweep).
+- [ ] A8 — README wow + screenshots, consolidate LESSON, tag v1.0.0 + release.
+
+## Superseded A1-era notes (kept for history)
 - [x] **A0 — Repo scaffold + tooling** (PR #1 merged): full PHP+JS toolchain, CI 5 jobs green,
   EnsureAdmin (Gate-only, auth:sanctum), PanelController (manifest→assets cached), boot tests.
 - [ ] **A1 — Design system + shell + charts** (branch `feat/admin-a1-design-system`, IN PROGRESS):

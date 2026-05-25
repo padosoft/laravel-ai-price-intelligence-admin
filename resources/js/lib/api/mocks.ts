@@ -1,5 +1,15 @@
+import { ApiError } from './errors';
 import type { CursorPage, DashboardStats, TenantMe } from './types';
-import { ALERTS, ANOMALIES, PRICE_SERIES, PRODUCTS, TARGETS } from './fixtures';
+import {
+  ALERTS,
+  ANOMALIES,
+  COMPETITOR_LIST,
+  MATCH_PROPOSALS,
+  PRICE_SERIES,
+  PRICE_SERIES_BY_CP,
+  PRODUCTS,
+  TARGETS,
+} from './fixtures';
 
 // Dev/test fixture layer. Active only when runtimeConfig.useMocks is true (no live
 // Laravel backend). This is a dev-render convenience — shipped screens call the real
@@ -52,6 +62,13 @@ const STATS: DashboardStats = {
 
 type Handler = (query?: Record<string, unknown>, body?: unknown) => unknown;
 
+/**
+ * Tracks match proposal IDs that have been approved/rejected in the current mock session.
+ * Exported so tests can reset between cases.
+ */
+export const processedMatchIds = new Set<number>();
+export function resetMatchMocks(): void { processedMatchIds.clear(); }
+
 /** Registry keyed by "METHOD /path" (exact) or "METHOD /prefix/*" patterns. */
 const handlers: Record<string, Handler> = {
   'GET /tenants/me': () => ({ data: TENANT_ME }),
@@ -64,8 +81,29 @@ const handlers: Record<string, Handler> = {
   'GET /alerts': () => page(ALERTS),
   'GET /anomalies': () => page(ANOMALIES),
   'GET /observations/prices': (query) => {
+    const cpId = query?.competitor_product_id != null ? Number(query.competitor_product_id) : null;
+    if (cpId != null) {
+      return page(PRICE_SERIES_BY_CP[cpId] ?? []);
+    }
     const host = (query?.host as string | undefined) ?? 'amazon.it';
     return page(PRICE_SERIES[host] ?? PRICE_SERIES['amazon.it']);
+  },
+  'GET /matches': (query) => {
+    const status = (query?.status as string | undefined) ?? 'pending';
+    return page(
+      MATCH_PROPOSALS.filter((m) =>
+        m.status === status && (status !== 'pending' || !processedMatchIds.has(m.id)),
+      ),
+    );
+  },
+  'GET /competitor-products': (query) => {
+    const host = query?.host as string | undefined;
+    const productId = query?.product_id != null ? Number(query.product_id) : undefined;
+    return page(
+      COMPETITOR_LIST.filter(
+        (c) => (host ? c.source?.host === host : true) && (productId != null ? c.target?.product_id === productId : true),
+      ),
+    );
   },
 };
 
@@ -108,6 +146,29 @@ export async function mockFetch<T>(
   // Dynamic action paths.
   if (method === 'POST' && /^\/targets\/\d+\/scrape:now$/.test(path)) {
     return { data: { queued: 2 } } as T;
+  }
+  const cpDetail = method === 'GET' && path.match(/^\/competitor-products\/(\d+)$/);
+  if (cpDetail) {
+    const id = Number(cpDetail[1]);
+    const cp = COMPETITOR_LIST.find((c) => c.id === id);
+    // Mirror the core's findOrFail: an unknown id is a 404, not a silent fall-through to
+    // the first listing. Throw an ApiError(404) so the QueryClient retry policy skips it
+    // (it only retries 5xx) instead of retrying a deterministic not-found.
+    if (!cp) throw new ApiError(404, null, 'HTTP 404: competitor product not found');
+    return {
+      data: {
+        competitor_product: cp,
+        latest_price: cp.latest_price ?? null,
+        latest_stock: null,
+        latest_promo: null,
+        latest_content: null,
+      },
+    } as T;
+  }
+  if (method === 'POST' && /^\/matches\/\d+\/(approve|reject)$/.test(path)) {
+    const id = Number(path.split('/')[2]);
+    processedMatchIds.add(id);
+    return (path.endsWith('approve') ? { data: { match_status: 'confirmed' } } : undefined) as T;
   }
   if (method === 'POST' && /^\/rules\/\d+\/simulate$/.test(path)) {
     return { data: { rule_id: 0, strategy: 'undercut_pct', custom_not_simulated: false, decisions: [] } } as T;

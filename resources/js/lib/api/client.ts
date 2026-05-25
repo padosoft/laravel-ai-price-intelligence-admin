@@ -3,21 +3,9 @@ import type { ProblemDetails } from './types';
 import { mockFetch } from './mocks';
 import { getBearerToken } from './token';
 
-export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly problem: ProblemDetails | null,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-
-  /** Field validation errors (RFC-7807 `errors`), if any. */
-  get fieldErrors(): Record<string, string[]> {
-    return this.problem?.errors ?? {};
-  }
-}
+// Re-exported from its own module so the mock layer can throw it without a circular import.
+export { ApiError } from './errors';
+import { ApiError } from './errors';
 
 type Query = Record<string, string | number | boolean | null | undefined>;
 

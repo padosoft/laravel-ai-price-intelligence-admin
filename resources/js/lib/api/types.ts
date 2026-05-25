@@ -102,6 +102,55 @@ export interface CompetitorProduct {
   last_seen_at: string | null;
 }
 
+/** A monitoring-target reference (id + product_id) with its eager-loaded product, as the
+ * core attaches to matches/competitor rows via `target.product`. */
+export interface TargetRef {
+  id: number;
+  product_id?: number;
+  product?: Product | null;
+}
+
+/** One matcher's contribution in the review evidence breakdown (core `evidence` json). */
+export interface MatchEvidence {
+  matcher: string;
+  label: string;
+  score: number;
+  /** true = matched, false = no match, null = skipped. */
+  matched: boolean | null;
+  ai?: boolean;
+}
+
+/** A candidate match in the [60,85) confidence band awaiting human review (`GET /matches`). */
+export interface MatchProposal {
+  id: number;
+  monitoring_target_id: number;
+  competitor_source_id: number | null;
+  candidate_url: string;
+  candidate_title: string | null;
+  candidate_image_url: string | null;
+  candidate_price_cents: number | null;
+  candidate_host: string | null;
+  evidence: MatchEvidence[] | null;
+  confidence: number;
+  status: string;
+  target?: TargetRef | null;
+}
+
+/** Competitor source summary (host/display name) eager-loaded onto a listing. */
+export interface CompetitorSourceRef {
+  id: number;
+  host: string;
+  display_name?: string | null;
+}
+
+/** A row of `GET /competitor-products` — a confirmed listing with its matched product,
+ * source host and latest price observation. */
+export interface CompetitorListItem extends CompetitorProduct {
+  target?: TargetRef | null;
+  source?: CompetitorSourceRef | null;
+  latest_price?: PriceObservation | null;
+}
+
 // ---- Observations ----
 export interface PriceObservation {
   id: number;
@@ -115,7 +164,7 @@ export interface PriceObservation {
 }
 
 export interface CompetitorDetail {
-  competitor_product: CompetitorProduct;
+  competitor_product: CompetitorListItem;
   latest_price: PriceObservation | null;
   latest_stock: Record<string, unknown> | null;
   latest_promo: Record<string, unknown> | null;
