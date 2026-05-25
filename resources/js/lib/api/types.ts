@@ -43,8 +43,20 @@ export interface TenantFeatures {
   [key: string]: boolean;
 }
 
+/** Free-form per-tenant settings persisted via PATCH /tenants/me/settings. The core stores
+ * an arbitrary JSON object; the admin writes the keys it owns and leaves the rest untouched. */
+export interface TenantSettings {
+  /** Address alerts are emailed to (Notification channels section). */
+  alert_email?: string;
+  /** Default table row density for list screens. */
+  density?: 'comfortable' | 'compact';
+  /** Per-channel notification routing toggles. */
+  channels?: { webhook?: boolean; mail?: boolean; slack?: boolean; teams?: boolean };
+  [key: string]: unknown;
+}
+
 export interface TenantMe {
-  tenant: { id: number | string; code: string | null; name: string | null };
+  tenant: { id: number | string; code: string | null; name: string | null; settings?: TenantSettings };
   features: TenantFeatures;
   abilities: string[];
 }

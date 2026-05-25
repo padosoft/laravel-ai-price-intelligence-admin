@@ -6,11 +6,12 @@ import { useAlerts, useAlertActions } from '@/hooks/operate';
 import { useAlertStream } from '@/lib/realtime/alert-stream-context';
 import { alertStreamUrl } from '@/config';
 import type { Severity } from '@/lib/api/types';
+import type { RouteKey } from '@/lib/types';
 
 const SEVERITIES: Array<Severity | 'all'> = ['all', 'high', 'medium', 'low'];
 const ACK_FILTERS = ['all', 'unacked', 'acked'] as const;
 
-export function Alerts() {
+export function Alerts({ onNavigate }: { onNavigate?: (r: RouteKey) => void }) {
   const { data, isLoading } = useAlerts(100);
   const all = useMemo(() => data?.data ?? [], [data]);
   const { ack } = useAlertActions();
@@ -51,7 +52,7 @@ export function Alerts() {
           </p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn"><I.Settings size={13} /> Channels</button>
+          <button type="button" className="btn" onClick={() => onNavigate?.('settings')}><I.Settings size={13} /> Channels</button>
         </div>
       </div>
 

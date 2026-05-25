@@ -28,13 +28,14 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
 > `GET /ai-decisions`, `/facets/hosts`+`/facets/categories`, streamed CSV export `:export`,
 > `PATCH /tenants/me/settings`, daily aggregates). Core dep bumped here to **^1.5**.
 - [x] **(prep)** bump `padosoft/laravel-ai-price-intelligence` → `^1.5` in composer.json.
-- [ ] **B4** — real test harness: a Testbench/Sail app mounting the core + DB (migrate + realistic
-  seed) exposing the live API; Playwright **integration** project against it (alongside the mock
-  project) + **visual-regression** baselines (`toHaveScreenshot`) on key screens; CI wiring.
-- [ ] **B5** — wire placeholder actions/forms: New target/SKU/repricing-rule/webhook; Import CSV;
-  Add-by-URL; Trigger discovery; **Export** CSV/PDF/digest (consumes `:export`); Compliance
-  risk-register/attestation; **Settings write** (consumes `PATCH /tenants/me/settings`). Validated,
-  optimistic+rollback, integration-tested. No dead buttons remain.
+- [x] **B4** — real test harness (PR #12 merged): `tests/Feature/CoreIntegrationTest.php` boots the
+  panel + core providers against a real migrated sqlite DB, seeds data, exercises the v1.5 endpoints;
+  Playwright **visual regression** (`tests/e2e/visual.spec.ts` + `playwright.visual.config.ts`,
+  `toHaveScreenshot` on Dashboard/Catalog/Competitors/Compliance, live-pill masked) on a dedicated
+  **windows-latest `visual` CI job** (baselines are OS-matched); default ubuntu e2e ignores visual.
+- [x] **B5** — wire placeholder actions/forms (see "B5 wiring progress" below): all actions wired,
+  optimistic+rollback, per-action vitest; no dead buttons remain. Required core **v1.6.0** anomaly-ack
+  backfill (PR #16). On `feat/admin-b5-wire-actions`.
 - [ ] **B6** — enterprise UX (500k SKU): infinite-scroll/cursor pagination on every list; table
   **virtualization** (`@tanstack/react-virtual`); Competitors **host-count chips** (`/facets/hosts`);
   **AI-decision-log viewer** in Compliance (`GET /ai-decisions`).
@@ -43,7 +44,50 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
 - [ ] **B8** — release hygiene: admin **CHANGELOG.md**, deploy + user/admin guides, consolidate
   B-phase lessons into AGENTS.md/.claude/rules; tag admin **v1.1.0** + release.
 
-### Next action (B4)
+### B5 wiring progress — COMPLETE ✅ (74 vitest green, typecheck/lint/build OK)
+- [x] **Settings write** → `PATCH /tenants/me/settings` (`useUpdateSettings`, optimistic merge of
+  `['tenants','me']` + rollback). Editable General (alert email + density) + Notification channels.
+- [x] **New target** → `POST /targets` (modal; `useTargetActions.create`, optimistic via reusable
+  `useOptimisticCreate` helper). **Add-by-URL** → `POST /competitor-products`; **Trigger discovery**
+  → `POST /targets/{id}/discover:now` (`useCompetitorActions`).
+- [x] **New SKU** → `POST /catalog/products:bulk`; **Import CSV** → multipart `POST
+  /catalog/products:csv` (client now passes FormData through). **New rule** → `POST /rules`.
+  **New webhook** → `POST /webhook-subscriptions`.
+- [x] **Exports**: Catalog/Prices **Export CSV** → `GET …:export` (client `fetchBlob`/`saveBlob`/
+  `downloadCsv` + `useCsvExport`; mock synthesizes the streamed CSV). Dashboard digest / Narrative
+  PDF / Compliance attestation → `printDocument()` (browser print-to-PDF of real content; PDF-deferred
+  per spec). Assortment Export → client-side CSV of loaded gaps. Dashboard Refresh → invalidate.
+  Alerts "Channels" → navigate to Settings.
+- [x] **Anomalies acknowledge + bulk** → `POST /anomalies/{id}/ack` + `POST /anomalies:ack`
+  (`useAnomalyActions`). **Required core backfill v1.6.0** (PR #16): anomaly-ack endpoints didn't
+  exist — implemented+released in core first per the gap-backfill policy, then wired here.
+- Reusable `useOptimisticCreate(prefix, fn, buildTemp)` (operate.ts): optimistic prepend across all
+  cursor-page caches matching the key prefix, rollback on error, settle-invalidate; guards against
+  non-list sibling caches (e.g. `['competitor-products', id]` detail). Temp rows use negative ids.
+
+### (historical) Next action (B5) — pre-B5 resume analysis
+> SUPERSEDED by "B5 wiring progress — COMPLETE" above. Kept for history; the gaps below were all
+> implemented during B5 (mutation hooks, wired forms, mock handlers, per-action tests).
+At B5 start the api client (`resources/js/lib/api/client.ts`) already had `api.post/patch/delete` +
+XSRF/bearer handling but **no `useMutation` hooks and no wired forms yet** — action screens were
+read-only. B5 added a mutation-hook layer (TanStack `useMutation` + queryClient invalidation,
+optimistic+rollback) and wired each action, **plus the matching handler in the MSW mock layer**
+(`resources/js/lib/api/mocks.ts`) so vitest/e2e/visual stay green, plus per-action tests.
+Actions to wire (core endpoint in parens) — "no dead buttons remain":
+- **Settings write** — `Settings.tsx` is fully read-only; add an editable General/notifications form →
+  `PATCH /tenants/me/settings` (B3). Expose `me().tenant.settings`.
+- **Export** CSV — Catalog + Prices "Export" → `GET /catalog/products:export` / `/observations/prices:export` (B3 streamed download).
+- **New target** (`POST /targets`), **Add-by-URL** (`POST /competitor-products`), **Trigger discovery**
+  (`POST /targets/{id}/discover:now`) + **scrape now** (`POST /targets/{id}/scrape:now`) — Targets/Competitors.
+- **New SKU / Import CSV** — Catalog → `POST /catalog/products:bulk` / `:csv`.
+- **New repricing rule** (Repricer editor) → `POST/PATCH /rules`; **simulate** → `POST /rules/{id}/simulate`.
+- **New webhook subscription** → `POST /webhook-subscriptions` + test button → `.../test`.
+- **Compliance** risk-register/attestation — surface; export attestation (doc/PDF deferred per spec if heavy).
+On `feat/admin-b5-wire-actions`. Strict per-phase loop (AGENTS.md). Then B6 (virtualization/facets/
+ai-decision viewer — `@tanstack/react-virtual` already a dep; `/facets/hosts` + `GET /ai-decisions`),
+B7 (SSE bearer/polling fallback), B8 (CHANGELOG + guides + tag admin v1.1.0).
+
+### (historical) Next action (B4)
 On `feat/admin-b4-test-harness`: after `composer update` to pull core ^1.5, build a Testbench test
 app that registers BOTH `PriceIntelligenceServiceProvider` and this panel's provider, migrates the
 core schema into a real (sqlite/mysql) DB, seeds realistic catalog+competitor+observation data, and

@@ -1,7 +1,8 @@
 import { Fragment, useState } from 'react';
 import { I } from '@/components/ds/icons';
+import { useToast } from '@/components/ds';
 import { useAuth } from '@/state/auth-context';
-import { useNarratives } from '@/hooks/operate';
+import { useNarratives, printDocument } from '@/hooks/operate';
 
 /** Render inline **bold** spans within a line. */
 function inline(text: string) {
@@ -43,6 +44,8 @@ export function Narrative() {
   const narratives = data?.data ?? [];
   const [period, setPeriod] = useState<string | null>(null);
   const current = narratives.find((n) => n.period === period) ?? narratives[0] ?? null;
+  const toast = useToast();
+  const exportPdf = () => { toast.push({ title: 'Preparing PDF', body: 'Opening the print dialog…' }); printDocument(); };
 
   return (
     <div className="page" data-testid="page-narrative">
@@ -65,7 +68,7 @@ export function Narrative() {
               ))}
             </select>
           )}
-          <button type="button" className="btn"><I.FileText size={13} /> Export PDF</button>
+          <button type="button" className="btn" onClick={exportPdf}><I.FileText size={13} /> Export PDF</button>
         </div>
       </div>
 

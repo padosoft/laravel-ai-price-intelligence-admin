@@ -77,7 +77,7 @@ export function PageRouter({ route, routeParams, onNavigate }: PageRouterProps) 
     case 'repricer':
       return <Repricer />;
     case 'alerts':
-      return <Alerts />;
+      return <Alerts onNavigate={onNavigate} />;
     case 'webhooks':
       return <Webhooks />;
     case 'api_keys':

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, unwrap } from '@/lib/api/client';
+import { api, downloadCsv, unwrap } from '@/lib/api/client';
 import type {
   Alert,
   Anomaly,
@@ -8,6 +8,7 @@ import type {
   AssortmentGap,
   CompetitorDetail,
   CompetitorListItem,
+  CompetitorProduct,
   ContentGap,
   CursorPage,
   FetchLog,
@@ -18,19 +19,142 @@ import type {
   PriceObservation,
   Product,
   RepricingRule,
+  RuleStrategy,
   Resource,
   ReviewsPage,
   RuleDecision,
   SimulateResult,
   TargetStatus,
+  TenantMe,
+  TenantSettings,
   WebhookSubscription,
 } from '@/lib/api/types';
+
+/**
+ * Shared optimistic "create into a list" mutation. Prepends a temporary row to every cached
+ * cursor-page whose key matches `prefix` (so parameterized lists like `['targets', status]`
+ * all update), snapshots them for rollback on error, and re-syncs from the server on settle.
+ * The temp row gets a negative id so it never collides with a real one and is trivially
+ * distinguishable while in flight.
+ */
+function useOptimisticCreate<TVars, TItem, TResult>(
+  prefix: readonly unknown[],
+  mutationFn: (vars: TVars) => Promise<TResult>,
+  buildTemp: (vars: TVars) => TItem,
+  // Optional per-cache guard: return false to skip prepending the temp row into a given list
+  // cache whose filter wouldn't actually contain the new item (e.g. a paused-only target list
+  // must not flash a newly created active target). Defaults to "applies everywhere".
+  appliesTo?: (queryKey: readonly unknown[], vars: TVars) => boolean,
+) {
+  const qc = useQueryClient();
+  return useMutation<TResult, unknown, TVars, { snapshots: Array<[readonly unknown[], CursorPage<TItem> | undefined]> }>({
+    mutationFn,
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: prefix });
+      const entries = qc.getQueriesData<CursorPage<TItem>>({ queryKey: prefix });
+      const snapshots = entries as Array<[readonly unknown[], CursorPage<TItem> | undefined]>;
+      const temp = buildTemp(vars);
+      for (const [key, old] of entries) {
+        // Only touch cursor-page list caches; a sibling detail query (e.g. the
+        // `['competitor-products', id]` single-resource cache) shares the prefix but holds a
+        // non-array `data`, so guard against corrupting it.
+        if (!old || !Array.isArray(old.data)) continue;
+        if (appliesTo && !appliesTo(key, vars)) continue;
+        qc.setQueryData<CursorPage<TItem>>(key, { ...old, data: [temp, ...old.data] });
+      }
+      return { snapshots };
+    },
+    onError: (_e, _v, ctx) => {
+      ctx?.snapshots.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: prefix }),
+  });
+}
+
+/** Monotonic source of negative ids for optimistic temp rows (never collides with server ids). */
+let tempIdSeq = -1;
+function nextTempId(): number { return tempIdSeq--; }
+
+/** Spec for a streamed CSV export (the core's `:export` endpoints). */
+export interface CsvExportSpec {
+  path: string;
+  query?: Record<string, string | number | boolean | null | undefined>;
+  filename: string;
+}
+
+/**
+ * Streamed CSV export as a mutation, so screens get isPending/disabled state and error toasts.
+ * Resolves once the file has been fetched and handed to the browser's download.
+ */
+export function useCsvExport() {
+  return useMutation({
+    mutationFn: ({ path, query, filename }: CsvExportSpec) => downloadCsv(path, query, filename),
+  });
+}
+
+/**
+ * Produce a PDF-style document from the currently rendered page via the browser's native
+ * print-to-PDF. Used for narrative/digest/attestation exports the core does not stream as a
+ * file — it prints the real on-screen content (no synthetic data). No-op outside a browser.
+ */
+export function printDocument(): void {
+  if (typeof window !== 'undefined' && typeof window.print === 'function') window.print();
+}
 
 export function useCatalog() {
   return useQuery({
     queryKey: ['catalog', 'products'],
     queryFn: () => api.get<CursorPage<Product>>('/catalog/products'),
   });
+}
+
+/** Payload for creating a single SKU (POST /catalog/products:bulk with a one-item batch). */
+export interface NewSkuInput {
+  external_id: string;
+  name: string;
+  sku?: string;
+  brand?: string;
+  our_price_cents?: number;
+  currency?: string;
+  base_country?: string;
+}
+
+/**
+ * Catalog write actions. `createSku` optimistically prepends the new product to the cached
+ * catalog page (rollback on error) and posts a one-item bulk batch; `importCsv` uploads a
+ * multipart CSV file and re-syncs the catalog on completion.
+ */
+export function useCatalogActions() {
+  const qc = useQueryClient();
+
+  const createSku = useOptimisticCreate<NewSkuInput, Product, { data: { upserted: number } }>(
+    ['catalog', 'products'],
+    (input) => api.post<{ data: { upserted: number } }>('/catalog/products:bulk', { products: [input] }),
+    (input) => ({
+      id: nextTempId(),
+      external_id: input.external_id,
+      sku: input.sku ?? null,
+      gtin: null,
+      mpn: null,
+      brand: input.brand ?? null,
+      model: null,
+      name: input.name,
+      our_price_cents: input.our_price_cents ?? null,
+      currency: input.currency ?? null,
+      base_country: input.base_country ?? null,
+    }),
+  );
+
+  const importCsv = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return api.post<{ data: { imported: number } }>('/catalog/products:csv', form);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['catalog', 'products'] }),
+  });
+
+  return { createSku, importCsv };
 }
 
 export function useTargets(status?: TargetStatus | 'all') {
@@ -131,6 +255,69 @@ export function useCompetitorDetail(id: number) {
   });
 }
 
+/** Payload for manually attaching a competitor listing by URL (POST /competitor-products). */
+export interface AddCompetitorInput {
+  monitoring_target_id: number;
+  url: string;
+  external_ref?: string;
+}
+
+/**
+ * Competitor listing actions. `addByUrl` optimistically prepends the new (manual, confidence
+ * 100) listing to every cached competitor-products page and rolls back on error; `discover`
+ * queues background URL discovery for a target (no synchronous list change).
+ */
+export function useCompetitorActions() {
+  const addByUrl = useOptimisticCreate<AddCompetitorInput, CompetitorListItem, { data: CompetitorProduct }>(
+    ['competitor-products'],
+    (input) => api.post<{ data: CompetitorProduct }>('/competitor-products', input),
+    (input) => ({
+      id: nextTempId(),
+      monitoring_target_id: input.monitoring_target_id,
+      competitor_source_id: null,
+      url: input.url,
+      external_ref: input.external_ref ?? null,
+      match_status: 'confirmed',
+      match_confidence: 100,
+      match_method: 'manual',
+      last_seen_at: null,
+      target: null,
+      source: null,
+      latest_price: null,
+    }),
+    // The temp listing has no resolved host/product yet, so only show it in the unfiltered
+    // ("all" host, no product) list — never in a host- or product-filtered view.
+    (key) => {
+      const params = key[1] as { host?: string; productId?: number | null } | undefined;
+      return params?.host === 'all' && (params?.productId ?? null) === null;
+    },
+  );
+
+  const discover = useMutation({
+    mutationFn: (targetId: number) => api.post<{ data: { queued: boolean } }>(`/targets/${targetId}/discover:now`),
+  });
+
+  return { addByUrl, discover };
+}
+
+/**
+ * Anomaly review actions (core v1.6). `ack` acknowledges one anomaly; `ackBulk` acknowledges a
+ * batch by id (server skips already-acked). Both invalidate the anomalies list on success.
+ */
+export function useAnomalyActions() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['anomalies'] });
+  const ack = useMutation({
+    mutationFn: (id: number) => api.post(`/anomalies/${id}/ack`),
+    onSuccess: invalidate,
+  });
+  const ackBulk = useMutation({
+    mutationFn: (ids: number[]) => api.post<{ data: { acknowledged: number } }>('/anomalies:ack', { ids }),
+    onSuccess: invalidate,
+  });
+  return { ack, ackBulk };
+}
+
 // ---- Intelligence (A5) ----
 
 /** Price forecasts (statistical model + confidence interval). */
@@ -201,9 +388,30 @@ export function useRuleDecisions() {
 }
 
 /** Dry-run a rule against sample SKUs (no persistence, no webhooks). */
+/** Payload for creating a repricing rule (POST /rules). */
+export interface NewRuleInput {
+  name: string;
+  strategy: RuleStrategy;
+  priority?: number;
+}
+
 export function useRuleActions() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ['rules'] });
+
+  const create = useOptimisticCreate<NewRuleInput, RepricingRule, { data: RepricingRule }>(
+    ['rules'],
+    (input) => api.post<{ data: RepricingRule }>('/rules', input),
+    (input) => ({
+      id: nextTempId(),
+      name: input.name,
+      target_filter: null,
+      strategy: input.strategy,
+      parameters: {},
+      priority: input.priority ?? 100,
+      status: 'active',
+    }),
+  );
 
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: 'active' | 'paused' }) =>
@@ -219,7 +427,7 @@ export function useRuleActions() {
       api.post<Resource<SimulateResult>>(`/rules/${id}/simulate`, { samples }).then(unwrap),
   });
 
-  return { setStatus, remove, simulate };
+  return { create, setStatus, remove, simulate };
 }
 
 /** Webhook subscriptions. */
@@ -228,6 +436,13 @@ export function useWebhooks() {
     queryKey: ['webhook-subscriptions'],
     queryFn: () => api.get<CursorPage<WebhookSubscription>>('/webhook-subscriptions', { per_page: 100 }),
   });
+}
+
+/** Payload for creating a webhook subscription (POST /webhook-subscriptions). */
+export interface NewWebhookInput {
+  url: string;
+  events?: string[];
+  secret?: string;
 }
 
 export function useWebhookActions() {
@@ -240,7 +455,19 @@ export function useWebhookActions() {
     mutationFn: (id: number) => api.delete(`/webhook-subscriptions/${id}`),
     onSuccess: invalidate,
   });
-  return { test, remove };
+  const create = useOptimisticCreate<NewWebhookInput, WebhookSubscription, { data: WebhookSubscription }>(
+    ['webhook-subscriptions'],
+    (input) => api.post<{ data: WebhookSubscription }>('/webhook-subscriptions', input),
+    (input) => ({
+      id: nextTempId(),
+      url: input.url,
+      events: input.events && input.events.length > 0 ? input.events : ['*'],
+      active: true,
+      last_status: null,
+      last_at: null,
+    }),
+  );
+  return { test, remove, create };
 }
 
 /** API keys (admin-scoped: apikeys:manage). Pass `enabled=false` when the caller lacks the
@@ -283,6 +510,14 @@ export function useAlertActions() {
  * synchronously, so it doesn't invalidate); `setStatus` mutates the row and invalidates
  * the targets list on success.
  */
+/** Payload for creating a monitoring target (POST /targets). */
+export interface NewTargetInput {
+  product_id: number;
+  country: string;
+  frequency?: string;
+  priority?: number;
+}
+
 export function useTargetActions() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ['targets'] });
@@ -297,5 +532,53 @@ export function useTargetActions() {
     onSuccess: invalidate,
   });
 
-  return { scrapeNow, setStatus };
+  const create = useOptimisticCreate<NewTargetInput, MonitoringTarget, { data: MonitoringTarget }>(
+    ['targets'],
+    (input) => api.post<{ data: MonitoringTarget }>('/targets', input),
+    (input) => ({
+      id: nextTempId(),
+      product_id: input.product_id,
+      country: input.country.toUpperCase(),
+      locale: null,
+      frequency_preset: input.frequency ?? 'daily',
+      status: 'active',
+      priority: input.priority ?? 100,
+      last_check_at: null,
+      next_check_at: null,
+    }),
+    // New targets are created active → only show optimistically in the "all" and "active" lists.
+    (key) => { const status = key[1]; return status === 'all' || status === 'active'; },
+  );
+
+  return { scrapeNow, setStatus, create };
+}
+
+/**
+ * Write a partial tenant-settings patch (PATCH /tenants/me/settings). Optimistically merges
+ * the patch into the cached `['tenants','me']` identity so the form reflects the change
+ * immediately, rolls back on error, and re-syncs from the server on settle.
+ */
+export function useUpdateSettings() {
+  const qc = useQueryClient();
+  const key = ['tenants', 'me'] as const;
+
+  return useMutation({
+    mutationFn: (settings: TenantSettings) =>
+      api.patch<{ data: { settings: TenantSettings } }>('/tenants/me/settings', { settings }).then(unwrap),
+    onMutate: async (settings: TenantSettings) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<TenantMe>(key);
+      if (previous) {
+        qc.setQueryData<TenantMe>(key, {
+          ...previous,
+          tenant: { ...previous.tenant, settings: { ...(previous.tenant.settings ?? {}), ...settings } },
+        });
+      }
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
 }

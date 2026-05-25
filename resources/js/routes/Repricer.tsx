@@ -1,24 +1,45 @@
 import { useMemo, useState } from 'react';
 import { I } from '@/components/ds/icons';
 import { Price, PriceDelta, AiBadge, Tag } from '@/components/ds/pricing';
-import { useToast } from '@/components/ds';
+import { Modal, useToast } from '@/components/ds';
 import { useRules, useRuleActions, useRuleDecisions } from '@/hooks/operate';
-import type { RepricingRule, SimulateDecision } from '@/lib/api/types';
+import type { RepricingRule, RuleStrategy, SimulateDecision } from '@/lib/api/types';
 
 function asStringList(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
+const STRATEGIES: RuleStrategy[] = ['match_cheapest', 'beat_top_n', 'undercut_pct', 'match_with_floor', 'dynamic_demand', 'custom'];
+
 export function Repricer() {
   const { data } = useRules();
   const rules = useMemo(() => data?.data ?? [], [data]);
   const decisions = useRuleDecisions();
-  const { setStatus, remove, simulate } = useRuleActions();
+  const { create, setStatus, remove, simulate } = useRuleActions();
   const toast = useToast();
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const selected = rules.find((r) => r.id === selectedId) ?? rules[0] ?? null;
   const [simRows, setSimRows] = useState<SimulateDecision[] | null>(null);
+
+  const [open, setOpen] = useState(false);
+  const [ruleName, setRuleName] = useState('');
+  const [strategy, setStrategy] = useState<RuleStrategy>('undercut_pct');
+  const [priority, setPriority] = useState('100');
+
+  const submitRule = () => {
+    const submittedName = ruleName.trim();
+    if (submittedName === '') return;
+    // Preserve an explicit priority of 0 (highest); only fall back to 100 when unparseable.
+    const parsedPriority = Number.parseInt(priority, 10);
+    create.mutate(
+      { name: submittedName, strategy, priority: Number.isNaN(parsedPriority) ? 100 : parsedPriority },
+      {
+        onSuccess: () => { toast.push({ title: 'Rule created', body: submittedName }); setOpen(false); setRuleName(''); setStrategy('undercut_pct'); setPriority('100'); },
+        onError: () => toast.push({ title: 'Could not create rule', kind: 'error' }),
+      },
+    );
+  };
 
   const runSimulate = (rule: RepricingRule) => {
     // Dry-run with a couple of representative SKUs; the core returns decisions without persisting.
@@ -48,9 +69,39 @@ export function Repricer() {
           </p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn primary"><I.Plus size={13} /> New rule</button>
+          <button type="button" className="btn primary" onClick={() => setOpen(true)}><I.Plus size={13} /> New rule</button>
         </div>
       </div>
+
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="New repricing rule"
+        sub="Advisory-only: the rule emits repricing.suggested webhooks; it never applies prices. Tune the target filter and parameters after creation."
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setOpen(false)}>Cancel</button>
+            <button type="button" className="btn primary" disabled={ruleName.trim() === '' || create.isPending} onClick={submitRule}>
+              {create.isPending ? 'Creating…' : 'Create rule'}
+            </button>
+          </>
+        }
+      >
+        <div className="form-row">
+          <label htmlFor="rule-name">Name</label>
+          <input id="rule-name" className="input" value={ruleName} onChange={(e) => setRuleName(e.target.value)} placeholder="Beat Amazon by 2%" />
+        </div>
+        <div className="form-row">
+          <label htmlFor="rule-strategy">Strategy</label>
+          <select id="rule-strategy" className="select" value={strategy} onChange={(e) => setStrategy(e.target.value as RuleStrategy)}>
+            {STRATEGIES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="form-row">
+          <label htmlFor="rule-priority">Priority</label>
+          <input id="rule-priority" className="input" type="number" min={0} max={65535} value={priority} onChange={(e) => setPriority(e.target.value)} />
+        </div>
+      </Modal>
 
       <div className="banner-soft" style={{ marginBottom: 18 }}>
         <I.Lock size={16} style={{ color: 'var(--text-secondary)' }} />

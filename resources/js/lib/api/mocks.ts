@@ -1,5 +1,6 @@
 import { ApiError } from './errors';
-import type { CursorPage, DashboardStats, TenantMe } from './types';
+import { toCsv } from '../csv';
+import type { CursorPage, DashboardStats, RepricingRule, TenantMe, TenantSettings } from './types';
 import {
   ALERTS,
   ANOMALIES,
@@ -41,8 +42,14 @@ export function page<T>(items: T[]): CursorPage<T> {
   return { ...emptyPage<T>(), data: items, per_page: items.length || 50 };
 }
 
+const TENANT_SETTINGS_SEED: TenantSettings = {
+  alert_email: 'pricing-ops@acme.it',
+  density: 'comfortable',
+  channels: { webhook: true, mail: true, slack: false, teams: false },
+};
+
 const TENANT_ME: TenantMe = {
-  tenant: { id: 'acme-it', code: 'ACME', name: 'Acme Italia' },
+  tenant: { id: 'acme-it', code: 'ACME', name: 'Acme Italia', settings: { ...TENANT_SETTINGS_SEED } },
   features: {
     review_insight: true,
     repricer: true,
@@ -87,8 +94,16 @@ let mockAlerts = ALERTS.map((a) => ({ ...a }));
 let mockRules = RULES.map((r) => ({ ...r }));
 let mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
 let mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+let mockTargets = TARGETS.map((t) => ({ ...t }));
+let mockCompetitors = COMPETITOR_LIST.map((c) => ({ ...c }));
+let mockProducts = PRODUCTS.map((p) => ({ ...p }));
+let mockAnomalies = ANOMALIES.map((a) => ({ ...a }));
+let mockTenantSettings: TenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
 let apiKeySeq = 90000;
 function nextApiKeyId(): number { return ++apiKeySeq; }
+let resourceSeq = 800000;
+/** Monotonic id for newly created mock resources (targets/rules/webhooks/competitor-products). */
+function nextResourceId(): number { return ++resourceSeq; }
 
 export function resetMockState(): void {
   processedMatchIds.clear();
@@ -96,20 +111,82 @@ export function resetMockState(): void {
   mockRules = RULES.map((r) => ({ ...r }));
   mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
   mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+  mockTargets = TARGETS.map((t) => ({ ...t }));
+  mockCompetitors = COMPETITOR_LIST.map((c) => ({ ...c }));
+  mockProducts = PRODUCTS.map((p) => ({ ...p }));
+  mockAnomalies = ANOMALIES.map((a) => ({ ...a }));
+  mockTenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
   apiKeySeq = 90000;
+  resourceSeq = 800000;
 }
 
 /** Registry keyed by "METHOD /path" (exact) or "METHOD /prefix/*" patterns. */
 const handlers: Record<string, Handler> = {
-  'GET /tenants/me': () => ({ data: TENANT_ME }),
+  'GET /tenants/me': () => ({
+    data: { ...TENANT_ME, tenant: { ...TENANT_ME.tenant, settings: mockTenantSettings } },
+  }),
+  'PATCH /tenants/me/settings': (_query, body) => {
+    const patch = ((body as { settings?: TenantSettings } | undefined)?.settings) ?? {};
+    // Mirror the core: shallow-merge the patch into the stored settings.
+    mockTenantSettings = { ...mockTenantSettings, ...patch };
+    return { data: { settings: mockTenantSettings } };
+  },
   'GET /stats': () => ({ data: STATS }),
-  'GET /catalog/products': () => page(PRODUCTS),
+  'GET /catalog/products': () => page(mockProducts),
+  'POST /catalog/products:bulk': (_query, body) => {
+    const items = ((body as { products?: Array<Record<string, unknown>> } | undefined)?.products) ?? [];
+    for (const it of items) {
+      mockProducts = [{
+        id: nextResourceId(),
+        external_id: String(it.external_id ?? ''),
+        sku: (it.sku as string | undefined) ?? null,
+        gtin: (it.gtin as string | undefined) ?? null,
+        mpn: (it.mpn as string | undefined) ?? null,
+        brand: (it.brand as string | undefined) ?? null,
+        model: (it.model as string | undefined) ?? null,
+        name: String(it.name ?? ''),
+        our_price_cents: (it.our_price_cents as number | undefined) ?? null,
+        currency: (it.currency as string | undefined) ?? null,
+        base_country: (it.base_country as string | undefined) ?? null,
+      }, ...mockProducts];
+    }
+    return { data: { upserted: items.length } };
+  },
+  'POST /catalog/products:csv': () => {
+    // The real core parses the uploaded file; the mock just acknowledges a fixed import count
+    // (FormData bodies aren't introspected here) so the screen flow + invalidation are exercised.
+    return { data: { imported: 0 } };
+  },
   'GET /targets': (query) => {
     const status = query?.status as string | undefined;
-    return page(status ? TARGETS.filter((t) => t.status === status) : TARGETS);
+    return page(status ? mockTargets.filter((t) => t.status === status) : mockTargets);
+  },
+  'POST /targets': (_query, body) => {
+    const b = (body ?? {}) as { product_id?: number; country?: string; frequency?: string; priority?: number };
+    const target = {
+      id: nextResourceId(),
+      product_id: b.product_id ?? 0,
+      country: (b.country ?? 'IT').toUpperCase(),
+      locale: null,
+      frequency_preset: b.frequency ?? 'daily',
+      status: 'active' as const,
+      priority: b.priority ?? 100,
+      last_check_at: null,
+      next_check_at: new Date().toISOString(),
+    };
+    mockTargets = [target, ...mockTargets];
+    return { data: target };
   },
   'GET /alerts': () => page(mockAlerts),
-  'GET /anomalies': () => page(ANOMALIES),
+  'GET /anomalies': () => page(mockAnomalies),
+  'POST /anomalies:ack': (_query, body) => {
+    const ids = ((body as { ids?: number[] } | undefined)?.ids) ?? [];
+    let acknowledged = 0;
+    for (const a of mockAnomalies) {
+      if (ids.includes(a.id) && a.acknowledged_at == null) { a.acknowledged_at = new Date().toISOString(); acknowledged += 1; }
+    }
+    return { data: { acknowledged } };
+  },
   'GET /observations/prices': (query) => {
     const cpId = query?.competitor_product_id != null ? Number(query.competitor_product_id) : null;
     if (cpId != null) {
@@ -127,8 +204,35 @@ const handlers: Record<string, Handler> = {
     );
   },
   'GET /rules': () => page(mockRules),
+  'POST /rules': (_query, body) => {
+    const b = (body ?? {}) as { name?: string; strategy?: string; priority?: number };
+    const rule = {
+      id: nextResourceId(),
+      name: b.name ?? 'New rule',
+      target_filter: null,
+      strategy: (b.strategy ?? 'undercut_pct') as RepricingRule['strategy'],
+      parameters: {},
+      priority: b.priority ?? 100,
+      status: 'active' as const,
+    };
+    mockRules = [rule, ...mockRules];
+    return { data: rule };
+  },
   'GET /rule-decisions': () => page(RULE_DECISIONS),
   'GET /webhook-subscriptions': () => page(mockWebhooks),
+  'POST /webhook-subscriptions': (_query, body) => {
+    const b = (body ?? {}) as { url?: string; events?: string[] };
+    const sub = {
+      id: nextResourceId(),
+      url: b.url ?? '',
+      events: b.events && b.events.length > 0 ? b.events : ['*'],
+      active: true,
+      last_status: null,
+      last_at: null,
+    };
+    mockWebhooks = [sub, ...mockWebhooks];
+    return { data: sub };
+  },
   'GET /api-keys': () => page(mockApiKeys),
   'GET /forecasts': () => page(FORECASTS),
   'GET /narratives': (query) => {
@@ -146,10 +250,29 @@ const handlers: Record<string, Handler> = {
     const host = query?.host as string | undefined;
     const productId = query?.product_id != null ? Number(query.product_id) : undefined;
     return page(
-      COMPETITOR_LIST.filter(
+      mockCompetitors.filter(
         (c) => (host ? c.source?.host === host : true) && (productId != null ? c.target?.product_id === productId : true),
       ),
     );
+  },
+  'POST /competitor-products': (_query, body) => {
+    const b = (body ?? {}) as { monitoring_target_id?: number; url?: string; external_ref?: string };
+    const competitor = {
+      id: nextResourceId(),
+      monitoring_target_id: b.monitoring_target_id ?? 0,
+      competitor_source_id: null,
+      url: b.url ?? '',
+      external_ref: b.external_ref ?? null,
+      match_status: 'confirmed' as const,
+      match_confidence: 100,
+      match_method: 'manual',
+      last_seen_at: new Date().toISOString(),
+      source: null,
+      target: null,
+      latest_price: null,
+    };
+    mockCompetitors = [competitor, ...mockCompetitors];
+    return { data: competitor };
   },
 };
 
@@ -177,6 +300,34 @@ export function registerMock(key: string, handler: Handler): void {
   handlers[key] = handler;
 }
 
+/**
+ * Synthesize the streamed CSV the core's `:export` endpoints return, from the current mock
+ * state, so the dev SPA and tests exercise the export flow without a live backend. Mirrors the
+ * core ExportController column sets.
+ */
+export function mockDownload(path: string, _query?: Record<string, unknown>): { text: string; filename: string } {
+  if (path === '/catalog/products:export') {
+    return {
+      filename: 'catalog.csv',
+      text: toCsv(
+        ['external_id', 'sku', 'gtin', 'mpn', 'brand', 'name', 'our_price_cents', 'currency'],
+        mockProducts.map((p) => [p.external_id, p.sku, p.gtin, p.mpn, p.brand, p.name, p.our_price_cents, p.currency]),
+      ),
+    };
+  }
+  if (path === '/observations/prices:export') {
+    const rows = Object.values(PRICE_SERIES).flat();
+    return {
+      filename: 'prices.csv',
+      text: toCsv(
+        ['competitor_product_id', 'captured_at', 'price_cents', 'currency', 'price_base_cents', 'available'],
+        rows.map((o) => [o.competitor_product_id, o.captured_at, o.price_cents, o.currency, o.price_base_cents, o.available ? 1 : 0]),
+      ),
+    };
+  }
+  return { filename: 'export.csv', text: '' };
+}
+
 export async function mockFetch<T>(
   method: string,
   path: string,
@@ -192,6 +343,10 @@ export async function mockFetch<T>(
   // Dynamic action paths.
   if (method === 'POST' && /^\/targets\/\d+\/scrape:now$/.test(path)) {
     return { data: { queued: 2 } } as T;
+  }
+  // Trigger competitor-URL discovery for a target (queued background job, 202 in the core).
+  if (method === 'POST' && /^\/targets\/\d+\/discover:now$/.test(path)) {
+    return { data: { queued: true } } as T;
   }
   const cpDetail = method === 'GET' && path.match(/^\/competitor-products\/(\d+)$/);
   if (cpDetail) {
@@ -234,6 +389,16 @@ export async function mockFetch<T>(
     processedMatchIds.add(id);
     return (path.endsWith('approve') ? { data: { match_status: 'confirmed' } } : undefined) as T;
   }
+  // Acknowledge a single anomaly
+  const anomalyAck = method === 'POST' && path.match(/^\/anomalies\/(\d+)\/ack$/);
+  if (anomalyAck) {
+    const id = Number(anomalyAck[1]);
+    const anomaly = mockAnomalies.find((a) => a.id === id);
+    // Mirror the core's findOrFail: an unknown id is a 404, not a silent 200 with {}.
+    if (!anomaly) throw new ApiError(404, null, 'HTTP 404: anomaly not found');
+    anomaly.acknowledged_at = new Date().toISOString();
+    return { data: anomaly } as T;
+  }
   // Acknowledge alert
   const alertAck = method === 'POST' && path.match(/^\/alerts\/(\d+)\/ack$/);
   if (alertAck) {
@@ -274,8 +439,14 @@ export async function mockFetch<T>(
   const targetPatch = method === 'PATCH' && path.match(/^\/targets\/(\d+)$/);
   if (targetPatch) {
     const id = Number(targetPatch[1]);
-    const base = TARGETS.find((t) => t.id === id) ?? TARGETS[0];
-    return { data: { ...base, id, ...(body as object) } } as T;
+    // Mutate the live mock collection (incl. targets created this session) so the change is
+    // reflected by subsequent GET /targets, mirroring the rules/webhooks patch handlers.
+    const target = mockTargets.find((t) => t.id === id);
+    if (target) {
+      Object.assign(target, body as object);
+      return { data: target } as T;
+    }
+    return { data: { ...mockTargets[0], id, ...(body as object) } } as T;
   }
 
   // Unregistered GET list endpoints resolve to an empty page so screens render.

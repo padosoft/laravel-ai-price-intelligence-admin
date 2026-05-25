@@ -1,4 +1,5 @@
-import { api, ApiError, unwrap } from '@/lib/api/client';
+import { api, ApiError, fetchBlob, unwrap } from '@/lib/api/client';
+import { mockDownload } from '@/lib/api/mocks';
 import type { TenantMe, DashboardStats } from '@/lib/api/types';
 
 describe('api client (mock-backed in tests)', () => {
@@ -20,6 +21,26 @@ describe('api client (mock-backed in tests)', () => {
     // LIST_PATHS fallback.
     const res = await api.get<{ data: unknown[] }>('/audit/fetch-logs');
     expect(res.data).toEqual([]);
+  });
+
+  it('accepts a FormData body for multipart uploads (CSV import)', async () => {
+    // FormData bypasses JSON.stringify / Content-Type in the client; the csv mock acknowledges it.
+    const form = new FormData();
+    form.append('file', new File(['external_id,name\nX,Y'], 'catalog.csv', { type: 'text/csv' }));
+    const res = await api.post<{ data: { imported: number } }>('/catalog/products:csv', form);
+    expect(res.data.imported).toBe(0);
+  });
+
+  it('synthesizes a CSV blob for the catalog :export endpoint (mock mode)', async () => {
+    // fetchBlob wraps the synthesized CSV; verify the blob + resolved filename...
+    const { blob, filename } = await fetchBlob('/catalog/products:export', undefined, 'fallback.csv');
+    expect(filename).toBe('catalog.csv');
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.size).toBeGreaterThan(0);
+    // ...and the underlying CSV text via mockDownload (jsdom's Blob has no .text()).
+    const { text } = mockDownload('/catalog/products:export');
+    expect(text.split('\n')[0]).toBe('external_id,sku,gtin,mpn,brand,name,our_price_cents,currency');
+    expect(text).toContain('Acme X1 Pro 128GB Smartphone');
   });
 });
 
