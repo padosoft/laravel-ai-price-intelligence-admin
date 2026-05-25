@@ -10,7 +10,7 @@ test('intelligence screens render via the sidebar', async ({ page }) => {
 
   await page.getByRole('button', { name: /Forecasts/ }).click();
   await expect(page.getByTestId('page-forecasts')).toBeVisible();
-  await expect(page.getByText('Confidence interval')).toBeVisible();
+  await expect(page.getByText('Confidence interval', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: /Narrative/ }).click();
   await expect(page.getByTestId('page-narrative')).toBeVisible();
