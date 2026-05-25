@@ -263,6 +263,17 @@ const handlers: Record<string, Handler> = {
       .sort((a, b) => b.count - a.count);
     return { data };
   },
+  'GET /facets/brands': () => {
+    // Exact per-brand counts over the full (mutable) product list — mirrors the core's SQL facet.
+    const counts = new Map<string, number>();
+    for (const p of mockProducts) {
+      if (p.brand) counts.set(p.brand, (counts.get(p.brand) ?? 0) + 1);
+    }
+    const data = [...counts.entries()]
+      .map(([brand, count]) => ({ brand, count }))
+      .sort((a, b) => b.count - a.count);
+    return { data };
+  },
   'GET /ai-decisions': (query) => {
     const feature = query?.feature as string | undefined;
     return page(feature ? AI_DECISIONS.filter((d) => d.feature === feature) : AI_DECISIONS);

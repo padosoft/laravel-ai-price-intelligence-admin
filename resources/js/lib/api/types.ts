@@ -345,6 +345,12 @@ export interface HostFacet {
   count: number;
 }
 
+/** SQL-level facet count from `GET /facets/brands` (exact per-brand SKU count, not page-1). */
+export interface BrandFacet {
+  brand: string;
+  count: number;
+}
+
 /** A row of the EU AI Act decision log (`GET /ai-decisions`). */
 export interface AiDecision {
   id: number;

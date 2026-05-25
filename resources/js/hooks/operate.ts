@@ -7,6 +7,7 @@ import type {
   ApiKeyCreated,
   AiDecision,
   AssortmentGap,
+  BrandFacet,
   CompetitorDetail,
   CompetitorListItem,
   CompetitorProduct,
@@ -112,6 +113,15 @@ export function useCatalog() {
 
 /** Page size for the virtualized/infinite enterprise lists (catalog, competitors). */
 const INFINITE_PAGE_SIZE = 100;
+
+/** Exact per-brand SKU counts computed in SQL (Catalog brand chips; scales past page 1). */
+export function useBrandFacets() {
+  return useQuery({
+    queryKey: ['facets', 'brands'],
+    queryFn: () => api.get<{ data: BrandFacet[] }>('/facets/brands').then(unwrap),
+    staleTime: 60_000,
+  });
+}
 
 /**
  * Cursor-paginated, infinite catalog list for the virtualized Catalog table (500k-SKU scale).

@@ -4,15 +4,13 @@ import { I } from '@/components/ds/icons';
 import { Price, Tag } from '@/components/ds/pricing';
 import { Modal, useToast } from '@/components/ds';
 import { VirtualTable } from '@/components/VirtualTable';
-import { useCatalog, useCatalogActions, useCatalogInfinite, useCsvExport } from '@/hooks/operate';
+import { useBrandFacets, useCatalogActions, useCatalogInfinite, useCsvExport } from '@/hooks/operate';
 import { fmtNum } from '@/lib/format';
 import type { RouteKey } from '@/lib/types';
 
 export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Record<string, unknown>) => void }) {
-  // Page-1 query feeds the brand chips; the main list is cursor-paginated + virtualized.
-  const { data } = useCatalog();
-  const products = useMemo(() => data?.data ?? [], [data]);
   const { createSku, importCsv } = useCatalogActions();
+  const brandFacetsQuery = useBrandFacets();
   const csvExport = useCsvExport();
   const toast = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -62,13 +60,11 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
       onError: () => toast.push({ title: 'CSV import failed', kind: 'error' }),
     });
   };
-  // Precompute brand counts once (O(n)) instead of filtering per chip in render.
-  const brandCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const p of products) if (p.brand) counts.set(p.brand, (counts.get(p.brand) ?? 0) + 1);
-    return counts;
-  }, [products]);
-  const brands = useMemo(() => ['all', ...brandCounts.keys()], [brandCounts]);
+  // Brand chips use EXACT per-brand counts from the SQL facet endpoint (scales past page 1).
+  const brandFacets = useMemo(() => brandFacetsQuery.data ?? [], [brandFacetsQuery.data]);
+  const brandCounts = useMemo(() => new Map(brandFacets.map((f) => [f.brand, f.count])), [brandFacets]);
+  const totalSkus = useMemo(() => brandFacets.reduce((sum, f) => sum + f.count, 0), [brandFacets]);
+  const brands = useMemo(() => ['all', ...brandFacets.map((f) => f.brand)], [brandFacets]);
   const [brand, setBrand] = useState('all');
 
   // Cursor-paginated, virtualized list (server-side brand filter). Pages are flattened for the
@@ -81,7 +77,7 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
       <div className="page-head">
         <div>
           <h1 className="page-title">Catalog</h1>
-          <p className="page-sub">{fmtNum(products.length)} SKUs synced from the host catalog.</p>
+          <p className="page-sub">{fmtNum(totalSkus)} SKUs synced from the host catalog.</p>
         </div>
         <div className="page-actions">
           <input
@@ -149,7 +145,7 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
             onClick={() => setBrand(b)}
           >
             {b === 'all' ? 'All brands' : b}
-            <span className="count">{b === 'all' ? products.length : (brandCounts.get(b) ?? 0)}</span>
+            <span className="count">{b === 'all' ? totalSkus : (brandCounts.get(b) ?? 0)}</span>
           </button>
         ))}
       </div>
