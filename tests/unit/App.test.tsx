@@ -39,7 +39,8 @@ describe('App shell', () => {
     const input = within(palette).getByPlaceholderText(/Search products, competitors/);
     await user.type(input, 'forecast');
     await user.click(within(palette).getByRole('option', { name: /Forecasts/ }));
-    expect(screen.getByRole('heading', { name: 'Forecasts' })).toBeInTheDocument();
+    // The real Forecasts screen (A5) renders an h1 of "Price forecasts".
+    expect(screen.getByRole('heading', { name: /Price forecasts/ })).toBeInTheDocument();
   });
 
   it('opens the tenant switcher from the topbar', async () => {
