@@ -144,10 +144,16 @@ export function Forecasts() {
                 </div></div>
                 <div className="card"><div className="card-body">
                   <div className="kpi-label">Confidence interval</div>
-                  <div className="mono" style={{ fontSize: 14, fontWeight: 500, marginTop: 4 }}>
-                    {selected.ci_low_cents != null && selected.ci_high_cents != null
-                      ? <>€{(selected.ci_low_cents / 100).toFixed(0)} <span style={{ color: 'var(--text-tertiary)' }}>→</span> €{(selected.ci_high_cents / 100).toFixed(0)}</>
-                      : '—'}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    {selected.ci_low_cents != null && selected.ci_high_cents != null ? (
+                      <>
+                        <Price cents={selected.ci_low_cents} />
+                        <span style={{ color: 'var(--text-tertiary)' }}>→</span>
+                        <Price cents={selected.ci_high_cents} />
+                      </>
+                    ) : (
+                      <span className="mono">—</span>
+                    )}
                   </div>
                 </div></div>
               </div>

@@ -11,12 +11,20 @@ interface Theme {
   mentions: number;
 }
 
+/** Coerce an unknown numeric field to a finite number in [min, max] (defends against bad
+ * fixtures / API drift, since these drive CSS flex factors and displayed percentages). */
+function clampNum(v: unknown, min: number, max: number): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, n));
+}
+
 function readThemes(raw: Array<Record<string, unknown>> | null): Theme[] {
   return (raw ?? []).map((t) => ({
     theme: String(t.theme ?? ''),
-    pos: Number(t.pos ?? 0),
-    neg: Number(t.neg ?? 0),
-    mentions: Number(t.mentions ?? 0),
+    pos: clampNum(t.pos, 0, 100),
+    neg: clampNum(t.neg, 0, 100),
+    mentions: Math.max(0, clampNum(t.mentions, 0, Number.MAX_SAFE_INTEGER)),
   }));
 }
 
@@ -55,7 +63,7 @@ export function Reviews() {
           <div className="card">
             <div className="card-head"><h3 className="card-title">Sentiment · CP #{primary.competitor_product_id}</h3></div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 20 }}>
-              <Gauge value={Math.round(primary.sentiment_score * 100)} label="Positive sentiment" size={180} />
+              <Gauge value={clampNum(Math.round(primary.sentiment_score * 100), 0, 100)} label="Positive sentiment" size={180} />
               <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-tertiary)' }}>
                 from <span className="mono">{primary.sample_count.toLocaleString()}</span> reviews · period {primary.period}
               </div>

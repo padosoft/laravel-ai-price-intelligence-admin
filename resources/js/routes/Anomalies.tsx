@@ -38,19 +38,22 @@ export function Anomalies() {
     return best;
   }, [anomalies]);
   const prices = useCompetitorPrices(focusCp);
-  const anomalyDays = useMemo(
-    () => new Set(anomalies.filter((a) => a.competitor_product_id === focusCp).map((a) => a.detected_at.slice(0, 10))),
-    [anomalies, focusCp],
-  );
+  // Precompute a day → anomaly map for the focused listing (O(observations + anomalies)
+  // instead of a per-point linear scan).
+  const anomalyByDay = useMemo(() => {
+    const m = new Map<string, Anomaly>();
+    for (const a of anomalies) if (a.competitor_product_id === focusCp) m.set(a.detected_at.slice(0, 10), a);
+    return m;
+  }, [anomalies, focusCp]);
   const scatter: ScatterPoint[] = (prices.data?.data ?? [])
-    .filter((o) => o.price_cents != null)
-    .map((o) => {
-      const day = o.captured_at.slice(0, 10);
-      const hit = anomalies.find((a) => a.competitor_product_id === focusCp && a.detected_at.slice(0, 10) === day);
+    .map((o) => ({ o, price: o.price_base_cents ?? o.price_cents }))
+    .filter((x): x is { o: typeof x.o; price: number } => x.price != null)
+    .map(({ o, price }) => {
+      const hit = anomalyByDay.get(o.captured_at.slice(0, 10));
       return {
         t: new Date(o.captured_at),
-        price: o.price_cents as number,
-        anomaly: anomalyDays.has(day),
+        price,
+        anomaly: hit != null,
         sev: hit?.severity,
         label: hit?.type ?? '',
       };
