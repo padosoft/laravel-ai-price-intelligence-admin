@@ -63,12 +63,14 @@ export function usePriceSeries(host: string, productId?: number | null, range?: 
   });
 }
 
-/** Price observation series for a single competitor listing (Competitor Detail price tab). */
+/** Price observation series for a single competitor listing (Competitor Detail price tab).
+ * Disabled for non-positive ids (sentinel "no selection" value) to avoid spurious requests. */
 export function useCompetitorPrices(competitorProductId: number) {
   return useQuery({
     queryKey: ['observations', 'prices', 'cp', competitorProductId],
     queryFn: () =>
       api.get<CursorPage<PriceObservation>>('/observations/prices', { competitor_product_id: competitorProductId }),
+    enabled: competitorProductId > 0,
   });
 }
 

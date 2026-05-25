@@ -14,10 +14,11 @@ function historyPoints(obs: PriceObservation[] | undefined) {
 
 /** Project a display series from the last observed price to the forecasted endpoint, widening
  * the CI band linearly to the stored ci_low/ci_high. The endpoint values are the real model
- * output; the path between is an interpolation for visualisation only. */
-function projectForecast(lastPrice: number | null, f: Forecast): ForecastPoint[] {
+ * output; the path between is an interpolation for visualisation only.
+ * `startMs` must be the last-observed timestamp (or `generated_at`) so the x-axis does not
+ * drift based on the viewer's local clock. */
+function projectForecast(lastPrice: number | null, f: Forecast, startMs: number): ForecastPoint[] {
   if (lastPrice == null) return [];
-  const start = Date.now();
   const target = f.forecast_price_cents;
   const lo = f.ci_low_cents ?? target;
   const hi = f.ci_high_cents ?? target;
@@ -28,7 +29,7 @@ function projectForecast(lastPrice: number | null, f: Forecast): ForecastPoint[]
     const halfLo = (target - lo) * frac;
     const halfHi = (hi - target) * frac;
     return {
-      t: new Date(start + (i + 1) * 86_400_000),
+      t: new Date(startMs + (i + 1) * 86_400_000),
       price,
       low: Math.round(price - halfLo),
       high: Math.round(price + halfHi),
@@ -54,8 +55,12 @@ export function Forecasts() {
 
   const prices = useCompetitorPrices(selected?.competitor_product_id ?? 0);
   const history = useMemo(() => historyPoints(prices.data?.data), [prices.data]);
-  const lastPrice = history.length ? history[history.length - 1].price : (meta?.our ?? null);
-  const forecastSeries = selected ? projectForecast(lastPrice, selected) : [];
+  // Do NOT fall back to our own price — that would mislead the "Current competitor" KPI.
+  const lastPrice = history.length ? history[history.length - 1].price : null;
+  const startMs = history.length
+    ? history[history.length - 1].t.getTime()
+    : selected ? new Date(selected.generated_at).getTime() : Date.now();
+  const forecastSeries = selected ? projectForecast(lastPrice, selected, startMs) : [];
   const current = lastPrice;
   const deltaPct = current != null && current !== 0 && selected ? ((selected.forecast_price_cents - current) / current) * 100 : null;
 
@@ -140,7 +145,9 @@ export function Forecasts() {
                 <div className="card"><div className="card-body">
                   <div className="kpi-label">Confidence interval</div>
                   <div className="mono" style={{ fontSize: 14, fontWeight: 500, marginTop: 4 }}>
-                    €{((selected.ci_low_cents ?? 0) / 100).toFixed(0)} <span style={{ color: 'var(--text-tertiary)' }}>→</span> €{((selected.ci_high_cents ?? 0) / 100).toFixed(0)}
+                    {selected.ci_low_cents != null && selected.ci_high_cents != null
+                      ? <>€{(selected.ci_low_cents / 100).toFixed(0)} <span style={{ color: 'var(--text-tertiary)' }}>→</span> €{(selected.ci_high_cents / 100).toFixed(0)}</>
+                      : '—'}
                   </div>
                 </div></div>
               </div>

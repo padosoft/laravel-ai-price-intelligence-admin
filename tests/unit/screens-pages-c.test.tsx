@@ -23,11 +23,13 @@ describe('Anomalies', () => {
     const user = userEvent.setup();
     wrap(<Anomalies />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Anomaly detection' })).toBeInTheDocument());
-    await waitFor(() => expect(screen.getAllByText(/CP #/).length).toBeGreaterThan(0));
-    // The type chips are derived from the anomalies fixture.
-    const firstType = screen.getAllByText(/price_error|outlier|batch_update/)[0];
-    expect(firstType).toBeInTheDocument();
-    await user.click(firstType);
+    // All 3 fixture anomalies should appear in the table.
+    await waitFor(() => expect(screen.getAllByText(/CP #/).length).toBe(3));
+    // Click the 'price_error' chip button to filter the table.
+    const chip = screen.getByRole('button', { name: /price_error/ });
+    await user.click(chip);
+    // Only the 1 price_error row should remain in the table.
+    await waitFor(() => expect(screen.getAllByText(/CP #/).length).toBe(1));
   });
 });
 
