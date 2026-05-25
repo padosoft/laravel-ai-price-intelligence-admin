@@ -188,7 +188,7 @@ export function useFetchLogs(limit?: number) {
 export function useRules() {
   return useQuery({
     queryKey: ['rules'],
-    queryFn: () => api.get<CursorPage<RepricingRule>>('/rules'),
+    queryFn: () => api.get<CursorPage<RepricingRule>>('/rules', { per_page: 100 }),
   });
 }
 
@@ -196,7 +196,7 @@ export function useRules() {
 export function useRuleDecisions() {
   return useQuery({
     queryKey: ['rule-decisions'],
-    queryFn: () => api.get<CursorPage<RuleDecision>>('/rule-decisions'),
+    queryFn: () => api.get<CursorPage<RuleDecision>>('/rule-decisions', { per_page: 100 }),
   });
 }
 
@@ -226,7 +226,7 @@ export function useRuleActions() {
 export function useWebhooks() {
   return useQuery({
     queryKey: ['webhook-subscriptions'],
-    queryFn: () => api.get<CursorPage<WebhookSubscription>>('/webhook-subscriptions'),
+    queryFn: () => api.get<CursorPage<WebhookSubscription>>('/webhook-subscriptions', { per_page: 100 }),
   });
 }
 
@@ -247,7 +247,7 @@ export function useWebhookActions() {
 export function useApiKeys() {
   return useQuery({
     queryKey: ['api-keys'],
-    queryFn: () => api.get<CursorPage<ApiKey>>('/api-keys'),
+    queryFn: () => api.get<CursorPage<ApiKey>>('/api-keys', { per_page: 100 }),
   });
 }
 

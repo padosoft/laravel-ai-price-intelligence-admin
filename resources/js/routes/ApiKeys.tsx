@@ -3,6 +3,7 @@ import { I } from '@/components/ds/icons';
 import { Tag } from '@/components/ds/pricing';
 import { useToast } from '@/components/ds';
 import { useApiKeys, useApiKeyActions } from '@/hooks/operate';
+import { useAbility } from '@/state/auth-context';
 import type { ApiKeyCreated } from '@/lib/api/types';
 
 function fmtDate(s: string | null): string {
@@ -10,11 +11,26 @@ function fmtDate(s: string | null): string {
 }
 
 export function ApiKeys() {
+  const canManage = useAbility('apikeys:manage');
   const { data, isLoading } = useApiKeys();
   const keys = useMemo(() => data?.data ?? [], [data]);
   const { create, revoke } = useApiKeyActions();
   const toast = useToast();
   const [created, setCreated] = useState<ApiKeyCreated | null>(null);
+
+  if (!canManage) {
+    return (
+      <div className="page" data-testid="page-api-keys">
+        <div className="page-head"><div><h1 className="page-title">API keys</h1></div></div>
+        <div className="banner-soft" style={{ marginTop: 20 }}>
+          <I.Shield size={16} style={{ color: 'var(--status-paused)' }} />
+          <div style={{ flex: 1, fontSize: 12.5 }}>
+            <b>Access denied</b> · the <span className="mono">apikeys:manage</span> ability is required to view or manage API keys.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const generate = () => {
     create.mutate(
@@ -35,8 +51,7 @@ export function ApiKeys() {
         </div>
         <div className="page-actions">
           <button type="button" className="btn primary" disabled={create.isPending} onClick={generate}><I.Plus size={13} /> Generate key</button>
-        </div>
-      </div>
+        </div>      </div>
 
       {created && (
         <div className="banner-soft ai" style={{ marginBottom: 16 }}>
@@ -57,11 +72,14 @@ export function ApiKeys() {
             </thead>
             <tbody>
               {keys.map((k) => {
+                const now = new Date();
                 const revoked = k.revoked_at != null;
+                const expired = !revoked && k.expires_at != null && new Date(k.expires_at) <= now;
+                const inactive = revoked || expired;
                 return (
                   <tr key={k.id}>
                     <td>
-                      <div style={{ fontSize: 13, fontWeight: 500, textDecoration: revoked ? 'line-through' : 'none', opacity: revoked ? 0.5 : 1 }}>{k.name}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, textDecoration: inactive ? 'line-through' : 'none', opacity: inactive ? 0.5 : 1 }}>{k.name}</div>
                       <div className="mono tertiary" style={{ fontSize: 10.5, marginTop: 2 }}>piprice_••••{String(k.id).slice(-4)}</div>
                     </td>
                     <td>
@@ -73,9 +91,15 @@ export function ApiKeys() {
                     <td className="mono muted">{fmtDate(k.last_used_at)}</td>
                     <td className="mono muted">{fmtDate(k.created_at)}</td>
                     <td className="mono muted">{k.expires_at ? fmtDate(k.expires_at) : <span className="tertiary">never</span>}</td>
-                    <td>{revoked ? <span className="badge failed"><span className="dot" />revoked</span> : <span className="badge success"><span className="dot" />active</span>}</td>
                     <td>
-                      <button type="button" className="btn sm danger" disabled={revoked} onClick={() => revoke.mutate(k.id, { onSuccess: () => toast.push({ title: 'Key revoked' }) })}>Revoke</button>
+                      {revoked
+                        ? <span className="badge failed"><span className="dot" />revoked</span>
+                        : expired
+                          ? <span className="badge paused"><span className="dot" />expired</span>
+                          : <span className="badge success"><span className="dot" />active</span>}
+                    </td>
+                    <td>
+                      <button type="button" className="btn sm danger" disabled={inactive || revoke.isPending} onClick={() => revoke.mutate(k.id, { onSuccess: () => toast.push({ title: 'Key revoked' }) })}>Revoke</button>
                     </td>
                   </tr>
                 );
