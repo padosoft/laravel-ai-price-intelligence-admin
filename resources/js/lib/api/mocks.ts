@@ -1,3 +1,4 @@
+import { ApiError } from './errors';
 import type { CursorPage, DashboardStats, TenantMe } from './types';
 import {
   ALERTS,
@@ -151,8 +152,9 @@ export async function mockFetch<T>(
     const id = Number(cpDetail[1]);
     const cp = COMPETITOR_LIST.find((c) => c.id === id);
     // Mirror the core's findOrFail: an unknown id is a 404, not a silent fall-through to
-    // the first listing (which would mask a broken link in the UI).
-    if (!cp) throw new Error('HTTP 404: competitor product not found');
+    // the first listing. Throw an ApiError(404) so the QueryClient retry policy skips it
+    // (it only retries 5xx) instead of retrying a deterministic not-found.
+    if (!cp) throw new ApiError(404, null, 'HTTP 404: competitor product not found');
     return {
       data: {
         competitor_product: cp,

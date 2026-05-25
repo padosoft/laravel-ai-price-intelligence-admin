@@ -63,6 +63,20 @@ export function Matches() {
       // Optimistic: the card flies out immediately for a snappy queue, but the success
       // toast is only shown once the server confirms; a failure rolls the card back into
       // the queue and drops its history entry so the user never sees a false "approved".
+      // `advanced`/`rolledBack` are closure-local so the 340ms advance and the (possibly
+      // earlier or later) onError coordinate without double-removing the card:
+      //  - error before advance → advance skips the slice (card stays at front)
+      //  - error after advance  → re-insert the already-sliced card at the front
+      let advanced = false;
+      let rolledBack = false;
+      const dropHistory = () =>
+        setHistory((h) => {
+          const i = h.findIndex((x) => x.id === current.id);
+          if (i < 0) return h;
+          const copy = [...h];
+          copy.splice(i, 1);
+          return copy;
+        });
       mutation.mutate(current.id, {
         onSuccess: () =>
           toast.push({
@@ -72,19 +86,16 @@ export function Matches() {
           }),
         onError: () => {
           toast.push({ title: action === 'approve' ? 'Approve failed — restored' : 'Reject failed — restored', kind: 'error' });
-          setLocalQueue((q) => [current, ...q]);
-          setHistory((h) => {
-            const i = h.findIndex((x) => x.id === current.id);
-            if (i < 0) return h;
-            const copy = [...h];
-            copy.splice(i, 1);
-            return copy;
-          });
+          dropHistory();
+          if (advanced) setLocalQueue((q) => [current, ...q]);
+          else rolledBack = true;
+          setFlying(null);
           setAnimKey((k) => k + 1);
         },
       });
       schedule(() => {
-        setLocalQueue((q) => q.slice(1));
+        advanced = true;
+        if (!rolledBack) setLocalQueue((q) => q.slice(1));
         setFlying(null);
         setAnimKey((k) => k + 1);
       }, 340);

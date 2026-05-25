@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import type { KeyboardEvent } from 'react';
 import { I } from '@/components/ds/icons';
 import { Price, PriceDelta, AiBadge, ConfidenceBadge, HostChip } from '@/components/ds/pricing';
 import { ProductImg } from '@/components/screens/shared';
@@ -90,16 +89,20 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
                   const pct = vsUsPct(c);
                   const stock = stockBadge(c.latest_price?.available);
                   const open = () => onNavigate('competitor_detail', { competitorId: c.id });
-                  const onKey = (e: KeyboardEvent<HTMLTableRowElement>) => {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
-                  };
                   return (
-                    <tr key={c.id} role="button" tabIndex={0} aria-label={`Open ${product?.name ?? c.url}`} onClick={open} onKeyDown={onKey}>
+                    <tr key={c.id} onClick={open} style={{ cursor: 'pointer' }}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <ProductImg img={product?.brand?.slice(0, 2)} />
                           <div>
-                            <div style={{ fontSize: 12.5, fontWeight: 500 }}>{product?.name ?? '—'}</div>
+                            <button
+                              type="button"
+                              className="cell-open-btn"
+                              aria-label={`Open ${product?.name ?? c.url}`}
+                              onClick={(e) => { e.stopPropagation(); open(); }}
+                            >
+                              {product?.name ?? '—'}
+                            </button>
                             <div className="mono tertiary" style={{ fontSize: 10.5, marginTop: 1 }}>{c.url}</div>
                           </div>
                         </div>
