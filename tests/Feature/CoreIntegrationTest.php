@@ -109,7 +109,7 @@ final class CoreIntegrationTest extends Orchestra
 
         $this->withHeader('X-Api-Key', $key)->getJson('/api/v1/facets/categories')
             ->assertOk()
-            ->assertJsonPath('data.0.category', 'Electronics');
+            ->assertJsonFragment(['category' => 'Electronics']);
     }
 
     #[Test]

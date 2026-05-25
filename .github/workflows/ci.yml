@@ -85,7 +85,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Install Playwright browsers
-        run: playwright install chromium
+        run: npx playwright install chromium
       - name: Visual regression
         # Baselines are committed for windows (matching this runner's font rendering); regenerate
         # with `npm run e2e:visual:update` on Windows when an intentional UI change lands.
