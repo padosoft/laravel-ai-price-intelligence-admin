@@ -55,7 +55,10 @@ export function Settings() {
     });
 
   const generalDirty = alertEmail !== (settings.alert_email ?? '') || density !== (settings.density ?? 'comfortable');
-  const channelsDirty = JSON.stringify(channels) !== JSON.stringify(settings.channels ?? {});
+  // Compare per known channel key (order-independent; a missing key reads as false on both sides).
+  const channelsDirty = CHANNELS.some(
+    (c) => (channels[c.key] ?? false) !== (settings.channels?.[c.key] ?? false),
+  );
 
   return (
     <div className="page" data-testid="page-settings">

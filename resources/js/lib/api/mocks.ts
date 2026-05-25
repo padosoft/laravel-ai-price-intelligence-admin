@@ -437,8 +437,14 @@ export async function mockFetch<T>(
   const targetPatch = method === 'PATCH' && path.match(/^\/targets\/(\d+)$/);
   if (targetPatch) {
     const id = Number(targetPatch[1]);
-    const base = TARGETS.find((t) => t.id === id) ?? TARGETS[0];
-    return { data: { ...base, id, ...(body as object) } } as T;
+    // Mutate the live mock collection (incl. targets created this session) so the change is
+    // reflected by subsequent GET /targets, mirroring the rules/webhooks patch handlers.
+    const target = mockTargets.find((t) => t.id === id);
+    if (target) {
+      Object.assign(target, body as object);
+      return { data: target } as T;
+    }
+    return { data: { ...mockTargets[0], id, ...(body as object) } } as T;
   }
 
   // Unregistered GET list endpoints resolve to an empty page so screens render.

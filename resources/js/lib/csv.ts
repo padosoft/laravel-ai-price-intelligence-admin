@@ -5,7 +5,8 @@ export type CsvCell = string | number | boolean | null | undefined;
 
 function escapeCell(v: CsvCell): string {
   const s = v == null ? '' : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  // Quote fields containing a comma, quote, or any newline char (LF, CR, or CRLF).
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 /** Serialize a header row + data rows into a CSV string (LF-joined). */
