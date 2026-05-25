@@ -27,7 +27,10 @@ for (const screen of screens) {
     await expect(page).toHaveScreenshot(`${screen.name}.png`, {
       fullPage: true,
       animations: 'disabled',
-      // Relative timestamps / sparklines can jitter; absorb sub-1% AA noise across runs.
+      // The Topbar live-pill renders a wall-clock time that ticks every 5s — mask it so a diff
+      // reflects a real layout/style regression, not the moving clock.
+      mask: [page.locator('.live-pill')],
+      // Tiny tolerance for cross-run antialiasing noise.
       maxDiffPixelRatio: 0.01,
     });
   });
