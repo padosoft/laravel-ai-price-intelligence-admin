@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react';
 import { I } from '@/components/ds/icons';
+import { useAuth } from '@/state/auth-context';
 import { useNarratives } from '@/hooks/operate';
 
 /** Render inline **bold** spans within a line. */
@@ -35,6 +36,8 @@ function Markdown({ md }: { md: string }) {
 
 export function Narrative() {
   const { data, isLoading } = useNarratives();
+  const { me } = useAuth();
+  const tenantName = me?.tenant.name ?? me?.tenant.code ?? 'Your tenant';
   const narratives = data?.data ?? [];
   const [period, setPeriod] = useState<string | null>(null);
   const current = narratives.find((n) => n.period === period) ?? narratives[0] ?? null;
@@ -76,7 +79,7 @@ export function Narrative() {
           </div>
           <article className="narrative-doc">
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.08em', marginBottom: 6 }}>
-              {current.period} · ACME ITALIA
+              {current.period} · {tenantName.toUpperCase()}
             </div>
             <Markdown md={current.summary_md} />
           </article>

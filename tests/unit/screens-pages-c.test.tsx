@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient } from '@/lib/api/queryClient';
 import { ToastProvider } from '@/components/ds';
+import { AuthProvider } from '@/state/AuthProvider';
 import { Anomalies } from '@/routes/Anomalies';
 import { Forecasts } from '@/routes/Forecasts';
 import { Narrative } from '@/routes/Narrative';
@@ -13,7 +14,9 @@ import { Reviews } from '@/routes/Reviews';
 function wrap(ui: React.ReactElement) {
   return render(
     <QueryClientProvider client={createQueryClient()}>
-      <ToastProvider>{ui}</ToastProvider>
+      <AuthProvider>
+        <ToastProvider>{ui}</ToastProvider>
+      </AuthProvider>
     </QueryClientProvider>,
   );
 }

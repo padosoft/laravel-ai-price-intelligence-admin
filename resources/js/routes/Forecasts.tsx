@@ -139,7 +139,7 @@ export function Forecasts() {
                   <div className="kpi-label">Forecast</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                     <Price cents={selected.forecast_price_cents} size="lg" />
-                    {deltaPct != null && <PriceDelta pct={deltaPct} />}
+                    {deltaPct != null && <PriceDelta pct={deltaPct} vs="prev" />}
                   </div>
                 </div></div>
                 <div className="card"><div className="card-body">
