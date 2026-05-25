@@ -28,8 +28,8 @@ export function Sidebar({ route, onNavigate, counts = {}, features = {}, user, t
 
       <nav className="sidebar-nav">
         {NAV_GROUPS.map((group) => (
-          <div className="nav-section" key={group.label}>
-            <div className="nav-label">{t(`groups.${group.label.toLowerCase()}`, group.label)}</div>
+          <div className="nav-section" key={group.key}>
+            <div className="nav-label">{t(`groups.${group.key}`, group.label)}</div>
             {group.items.map((item) => {
               if (!isFeatureVisible(features, item.feature)) return null;
               const IconCmp = I[item.icon] ?? I.Hash;

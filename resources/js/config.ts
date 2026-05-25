@@ -27,3 +27,6 @@ const fallback: AdminRuntimeConfig = {
 };
 
 export const runtimeConfig: AdminRuntimeConfig = window.__PI_ADMIN__ ?? fallback;
+
+/** API base with any trailing slash removed, so `${apiBase}/path` never double-slashes. */
+export const apiBase = runtimeConfig.apiBaseUrl.replace(/\/+$/, '');

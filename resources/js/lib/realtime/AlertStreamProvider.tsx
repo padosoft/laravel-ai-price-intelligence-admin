@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { runtimeConfig } from '@/config';
+import { apiBase, runtimeConfig } from '@/config';
 import type { Alert, CursorPage } from '@/lib/api/types';
 import { AlertStreamContext } from './alert-stream-context';
 
@@ -25,7 +25,7 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supported) return;
-    const es = new EventSource(`${runtimeConfig.apiBaseUrl}/alerts/stream`, { withCredentials: true });
+    const es = new EventSource(`${apiBase}/alerts/stream`, { withCredentials: true });
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false); // EventSource retries automatically
     es.onmessage = (ev: MessageEvent<string>) => {
