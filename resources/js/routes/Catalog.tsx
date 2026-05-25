@@ -30,7 +30,9 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
   const resetForm = () => { setExternalId(''); setName(''); setSku(''); setBrandInput(''); setPriceEuros(''); };
 
   const submitSku = () => {
-    if (externalId.trim() === '' || name.trim() === '') return;
+    // Capture submitted values up-front (inputs stay editable while the request is pending).
+    const submittedName = name.trim();
+    if (externalId.trim() === '' || submittedName === '') return;
     const rawCents = priceEuros.trim() === '' ? undefined : Math.round(Number(priceEuros) * 100);
     // Only send a price (and its currency) when it parses to a finite number; an unparseable
     // entry leaves both undefined so we never attach a currency without a price.
@@ -38,14 +40,14 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
     createSku.mutate(
       {
         external_id: externalId.trim(),
-        name: name.trim(),
+        name: submittedName,
         sku: sku.trim() || undefined,
         brand: brandInput.trim() || undefined,
         our_price_cents: priceCents,
         currency: priceCents != null ? 'EUR' : undefined,
       },
       {
-        onSuccess: () => { toast.push({ title: 'SKU created', body: name.trim() }); setOpen(false); resetForm(); },
+        onSuccess: () => { toast.push({ title: 'SKU created', body: submittedName }); setOpen(false); resetForm(); },
         onError: () => toast.push({ title: 'Could not create SKU', kind: 'error' }),
       },
     );

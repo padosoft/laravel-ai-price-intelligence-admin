@@ -31,14 +31,18 @@ export function Webhooks() {
   const isHttpsUrl = (v: string) => /^https:\/\/\S+$/i.test(v.trim());
 
   const submit = () => {
-    if (!isHttpsUrl(url)) return;
+    // Capture the submitted values up-front: inputs stay editable while the request is pending,
+    // so callbacks must reflect what was sent, not any later edits.
+    const submittedUrl = url.trim();
+    if (!isHttpsUrl(submittedUrl)) return;
     const eventList = events.split(',').map((e) => e.trim()).filter(Boolean);
+    const submittedSecret = secret.trim();
     create.mutate(
       // Omit events when blank so the core applies its `['*']` (all events) default — matches
       // the modal copy. Sending `[]` would instead subscribe to nothing.
-      { url: url.trim(), events: eventList.length > 0 ? eventList : undefined, secret: secret.trim() || undefined },
+      { url: submittedUrl, events: eventList.length > 0 ? eventList : undefined, secret: submittedSecret || undefined },
       {
-        onSuccess: () => { toast.push({ title: 'Subscription created', body: url.trim() }); setOpen(false); setUrl(''); setEvents(''); setSecret(''); },
+        onSuccess: () => { toast.push({ title: 'Subscription created', body: submittedUrl }); setOpen(false); setUrl(''); setEvents(''); setSecret(''); },
         onError: () => toast.push({ title: 'Could not create subscription', kind: 'error' }),
       },
     );

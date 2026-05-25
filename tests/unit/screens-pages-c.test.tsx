@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient } from '@/lib/api/queryClient';
 import { resetMockState } from '@/lib/api/mocks';
@@ -12,6 +12,9 @@ import { Narrative } from '@/routes/Narrative';
 import { Assortment } from '@/routes/Assortment';
 import { ContentGap } from '@/routes/ContentGap';
 import { Reviews } from '@/routes/Reviews';
+
+// Always restore stubbed globals (e.g. window.print) even if a test throws mid-assertion.
+afterEach(() => vi.unstubAllGlobals());
 
 function wrap(ui: React.ReactElement) {
   return render(
@@ -89,7 +92,6 @@ describe('Narrative', () => {
     await user.click(screen.getByRole('button', { name: /Export PDF/ }));
     await waitFor(() => expect(screen.getByText('Preparing PDF')).toBeInTheDocument());
     expect(printSpy).toHaveBeenCalled();
-    vi.unstubAllGlobals();
   });
 });
 

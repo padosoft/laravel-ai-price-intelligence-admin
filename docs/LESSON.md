@@ -43,12 +43,14 @@ Append learnings, environment quirks, and Copilot/CI feedback here. Carry the co
   gantt as an A7 item, rather than shipping synthetic data.
 
 ## B5 (wire placeholder actions)
-- **Reusable optimistic-create**: `useOptimisticCreate(prefix, mutationFn, buildTemp)` uses TanStack
-  `setQueriesData({ queryKey: prefix })` to prepend a temp row to *every* matching cursor-page cache
-  (so parameterized keys like `['targets', status]` all update), snapshots via `getQueriesData` for
-  rollback, and `invalidateQueries(prefix)` on settle. **Guard**: a sibling *detail* query can share
-  the prefix (`['competitor-products', id]` holds a single resource, not a page) — only mutate caches
-  where `Array.isArray(old.data)` or you corrupt the detail cache. Temp rows use monotonic negative ids.
+- **Reusable optimistic-create**: `useOptimisticCreate(prefix, mutationFn, buildTemp, appliesTo?)`
+  iterates `getQueriesData({ queryKey: prefix })` and calls `setQueryData(key, …)` per matching
+  cursor-page cache to prepend a temp row (so parameterized keys like `['targets', status]` all
+  update), keeps those snapshots for rollback, and `invalidateQueries(prefix)` on settle. **Guards**:
+  (a) a sibling *detail* query can share the prefix (`['competitor-products', id]` holds a single
+  resource, not a page) — only mutate caches where `Array.isArray(old.data)`; (b) the optional
+  `appliesTo(queryKey, vars)` predicate skips list caches whose filter wouldn't contain the new item
+  (e.g. a new active target must not flash in the paused-only list). Temp rows use monotonic negative ids.
 - **Toast bodies pollute `getByText`**: success toasts often echo the new entity's name/URL, so a
   bare `screen.getByText(value)` matches both the table row and the toast → "multiple elements".
   Scope row assertions with `within(screen.getByRole('table'))`, and count rows via table `row` role

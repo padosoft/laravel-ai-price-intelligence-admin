@@ -55,11 +55,14 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
   const isHttpUrl = (v: string) => /^https?:\/\/\S+$/i.test(v.trim());
 
   const submitAdd = () => {
-    if (targetId === '' || !isHttpUrl(url)) return;
+    const submittedUrl = url.trim();
+    if (targetId === '' || !isHttpUrl(submittedUrl)) return;
+    // Capture submitted values (inputs stay editable while pending).
+    const submittedTargetId = Number(targetId);
     addByUrl.mutate(
-      { monitoring_target_id: Number(targetId), url: url.trim() },
+      { monitoring_target_id: submittedTargetId, url: submittedUrl },
       {
-        onSuccess: () => { toast.push({ title: 'Competitor added', body: url.trim() }); setAddOpen(false); setUrl(''); setTargetId(''); },
+        onSuccess: () => { toast.push({ title: 'Competitor added', body: submittedUrl }); setAddOpen(false); setUrl(''); setTargetId(''); },
         onError: () => toast.push({ title: 'Could not add competitor', kind: 'error' }),
       },
     );
@@ -67,8 +70,9 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
 
   const submitDiscover = () => {
     if (discoverTargetId === '') return;
-    discover.mutate(Number(discoverTargetId), {
-      onSuccess: () => { toast.push({ title: 'Discovery queued', body: `target #${discoverTargetId}` }); setDiscoverOpen(false); setDiscoverTargetId(''); },
+    const submittedTargetId = Number(discoverTargetId);
+    discover.mutate(submittedTargetId, {
+      onSuccess: () => { toast.push({ title: 'Discovery queued', body: `target #${submittedTargetId}` }); setDiscoverOpen(false); setDiscoverTargetId(''); },
       onError: () => toast.push({ title: 'Could not queue discovery', kind: 'error' }),
     });
   };

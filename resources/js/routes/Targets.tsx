@@ -27,10 +27,13 @@ export function Targets() {
 
   const submit = () => {
     if (productId === '' || country.trim().length !== 2) return;
+    // Capture submitted values (inputs stay editable while pending).
+    const submittedProductId = Number(productId);
+    const submittedCountry = country.trim().toUpperCase();
     create.mutate(
-      { product_id: Number(productId), country: country.trim().toUpperCase(), frequency },
+      { product_id: submittedProductId, country: submittedCountry, frequency },
       {
-        onSuccess: () => { toast.push({ title: 'Target created', body: `Product #${productId} · ${country.toUpperCase()}` }); setOpen(false); resetForm(); },
+        onSuccess: () => { toast.push({ title: 'Target created', body: `Product #${submittedProductId} · ${submittedCountry}` }); setOpen(false); resetForm(); },
         onError: () => toast.push({ title: 'Could not create target', kind: 'error' }),
       },
     );

@@ -65,11 +65,13 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
   cursor-page caches matching the key prefix, rollback on error, settle-invalidate; guards against
   non-list sibling caches (e.g. `['competitor-products', id]` detail). Temp rows use negative ids.
 
-### Next action (B5) — resume analysis (done before any code)
-The api client (`resources/js/lib/api/client.ts`) ALREADY has `api.post/patch/delete` + XSRF/bearer
-handling — **but there are no `useMutation` hooks and no wired forms yet**; action screens are
-read-only. B5 must add a small mutation-hook layer (TanStack `useMutation` + queryClient invalidation,
-optimistic+rollback) and wire each action, **plus add the matching handler to the MSW mock layer**
+### (historical) Next action (B5) — pre-B5 resume analysis
+> SUPERSEDED by "B5 wiring progress — COMPLETE" above. Kept for history; the gaps below were all
+> implemented during B5 (mutation hooks, wired forms, mock handlers, per-action tests).
+At B5 start the api client (`resources/js/lib/api/client.ts`) already had `api.post/patch/delete` +
+XSRF/bearer handling but **no `useMutation` hooks and no wired forms yet** — action screens were
+read-only. B5 added a mutation-hook layer (TanStack `useMutation` + queryClient invalidation,
+optimistic+rollback) and wired each action, **plus the matching handler in the MSW mock layer**
 (`resources/js/lib/api/mocks.ts`) so vitest/e2e/visual stay green, plus per-action tests.
 Actions to wire (core endpoint in parens) — "no dead buttons remain":
 - **Settings write** — `Settings.tsx` is fully read-only; add an editable General/notifications form →
