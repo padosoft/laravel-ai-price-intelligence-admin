@@ -97,7 +97,12 @@ const handlers: Record<string, Handler> = {
   },
   'GET /competitor-products': (query) => {
     const host = query?.host as string | undefined;
-    return page(host ? COMPETITOR_LIST.filter((c) => c.source?.host === host) : COMPETITOR_LIST);
+    const productId = query?.product_id != null ? Number(query.product_id) : undefined;
+    return page(
+      COMPETITOR_LIST.filter(
+        (c) => (host ? c.source?.host === host : true) && (productId != null ? c.target?.product_id === productId : true),
+      ),
+    );
   },
 };
 

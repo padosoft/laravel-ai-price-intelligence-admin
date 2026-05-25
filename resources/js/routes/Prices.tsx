@@ -45,11 +45,10 @@ export function Prices() {
     .map((h) => ({ id: h.host, name: h.host, color: h.color, thick: h.thick, data: toPoints(byHost[h.host]) }))
     .filter((s) => s.data.length > 0);
 
-  const competitors = useCompetitors();
-  const forProduct = useMemo(
-    () => (competitors.data?.data ?? []).filter((c) => selected != null && c.target?.product_id === selected.id),
-    [competitors.data, selected],
-  );
+  // Server-side product filter (the core narrows /competitor-products by product_id) so this
+  // scales past a single cursor page on large catalogs.
+  const competitors = useCompetitors(undefined, selectedId);
+  const forProduct = useMemo(() => competitors.data?.data ?? [], [competitors.data]);
   const distribution = forProduct
     .filter((c) => c.latest_price?.price_cents != null)
     .map((c) => ({ name: c.source?.host?.split('.')[0] ?? '?', price: c.latest_price!.price_cents! }));

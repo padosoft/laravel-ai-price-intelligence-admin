@@ -45,13 +45,28 @@ export function Matches() {
       setHistory((h) => [...h, { id: current.id, action, fresh: true, proposal: current }]);
       setTimeout(() => setHistory((h) => h.map((x) => ({ ...x, fresh: false }))), 600);
       const mutation = action === 'approve' ? approve : reject;
+      // Optimistic: the card flies out immediately for a snappy queue, but the success
+      // toast is only shown once the server confirms; a failure rolls the card back into
+      // the queue and drops its history entry so the user never sees a false "approved".
       mutation.mutate(current.id, {
-        onError: () => toast.push({ title: action === 'approve' ? 'Approve failed' : 'Reject failed', kind: 'error' }),
-      });
-      toast.push({
-        title: action === 'approve' ? 'Match approved' : 'Match rejected',
-        body: `#${current.id} · confidence ${current.confidence}`,
-        kind: action === 'approve' ? '' : 'warn',
+        onSuccess: () =>
+          toast.push({
+            title: action === 'approve' ? 'Match approved' : 'Match rejected',
+            body: `#${current.id} · confidence ${current.confidence}`,
+            kind: action === 'approve' ? '' : 'warn',
+          }),
+        onError: () => {
+          toast.push({ title: action === 'approve' ? 'Approve failed — restored' : 'Reject failed — restored', kind: 'error' });
+          setLocalQueue((q) => [current, ...q]);
+          setHistory((h) => {
+            const i = h.findIndex((x) => x.id === current.id);
+            if (i < 0) return h;
+            const copy = [...h];
+            copy.splice(i, 1);
+            return copy;
+          });
+          setAnimKey((k) => k + 1);
+        },
       });
       setTimeout(() => {
         setLocalQueue((q) => q.slice(1));
@@ -264,9 +279,9 @@ export function Matches() {
               <button type="button" className="btn danger" onClick={() => decide('reject')}>
                 <I.X size={13} /> Reject <Kbd>R</Kbd>
               </button>
-              <button type="button" className="btn">
+              <a className="btn" href={current.candidate_url} target="_blank" rel="noreferrer noopener">
                 <I.External size={13} /> Open
-              </button>
+              </a>
               <button type="button" className="btn primary" onClick={() => decide('approve')}>
                 <I.Check size={13} /> Confirm <Kbd>A</Kbd>
               </button>

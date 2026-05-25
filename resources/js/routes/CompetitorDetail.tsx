@@ -3,7 +3,8 @@ import { I } from '@/components/ds/icons';
 import { Price, PriceDelta, AiBadge, ConfidenceBadge, HostChip } from '@/components/ds/pricing';
 import { ProductImg } from '@/components/screens/shared';
 import { PriceLineChart, type PriceSeries } from '@/components/charts';
-import { useAnomalies, useCompetitorDetail, useCompetitorPrices, useFetchLogs } from '@/hooks/operate';
+import { useToast } from '@/components/ds';
+import { useAnomalies, useCompetitorDetail, useCompetitorPrices, useFetchLogs, useTargetActions } from '@/hooks/operate';
 import type { PriceObservation } from '@/lib/api/types';
 import type { RouteKey } from '@/lib/types';
 
@@ -33,6 +34,19 @@ export function CompetitorDetail({
 }) {
   const [tab, setTab] = useState<TabKey>('price');
   const { data, isLoading, isError } = useCompetitorDetail(competitorId);
+  const { scrapeNow } = useTargetActions();
+  const toast = useToast();
+
+  if (competitorId <= 0) {
+    return (
+      <div className="page" data-testid="page-competitor-detail">
+        <button type="button" className="btn ghost sm" onClick={() => onNavigate('competitors')}>
+          <I.ChevronLeft size={12} /> Back to competitors
+        </button>
+        <div className="card"><div className="card-body empty">Choose a competitor listing to inspect.</div></div>
+      </div>
+    );
+  }
 
   if (isLoading) return <div className="page" data-testid="page-competitor-detail"><div className="card"><div className="card-body empty">Loading…</div></div></div>;
   if (isError || !data) {
@@ -79,8 +93,22 @@ export function CompetitorDetail({
           </div>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn"><I.Refresh size={13} /> Scrape now</button>
-          <button type="button" className="btn"><I.External size={13} /> Open listing</button>
+          <button
+            type="button"
+            className="btn"
+            disabled={scrapeNow.isPending}
+            onClick={() =>
+              scrapeNow.mutate(cp.monitoring_target_id, {
+                onSuccess: (res) => toast.push({ title: 'Scrape queued', body: `${res.data.queued} competitor(s)` }),
+                onError: () => toast.push({ title: 'Scrape failed', kind: 'error' }),
+              })
+            }
+          >
+            <I.Refresh size={13} /> Scrape now
+          </button>
+          <a className="btn" href={cp.url} target="_blank" rel="noreferrer noopener">
+            <I.External size={13} /> Open listing
+          </a>
         </div>
       </div>
 

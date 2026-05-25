@@ -93,20 +93,26 @@ export function useMatchActions() {
   return { approve, reject };
 }
 
-/** Confirmed competitor listings, optionally narrowed by host. */
-export function useCompetitors(host?: string) {
+/** Confirmed competitor listings, optionally narrowed by host and/or matched product
+ * (both filters are applied server-side by the core, so large catalogs page correctly). */
+export function useCompetitors(host?: string, productId?: number | null) {
   return useQuery({
-    queryKey: ['competitor-products', { host: host ?? 'all' }],
+    queryKey: ['competitor-products', { host: host ?? 'all', productId: productId ?? null }],
     queryFn: () =>
-      api.get<CursorPage<CompetitorListItem>>('/competitor-products', host ? { host } : undefined),
+      api.get<CursorPage<CompetitorListItem>>('/competitor-products', {
+        ...(host ? { host } : {}),
+        ...(productId != null ? { product_id: productId } : {}),
+      }),
   });
 }
 
-/** Single competitor listing detail (header + latest price/stock/promo/content snapshots). */
+/** Single competitor listing detail (header + latest price/stock/promo/content snapshots).
+ * Disabled for non-positive ids (e.g. navigated without a competitor selected). */
 export function useCompetitorDetail(id: number) {
   return useQuery({
     queryKey: ['competitor-products', id],
     queryFn: () => api.get<Resource<CompetitorDetail>>(`/competitor-products/${id}`).then(unwrap),
+    enabled: id > 0,
   });
 }
 

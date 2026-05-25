@@ -102,8 +102,9 @@ export interface CompetitorProduct {
   last_seen_at: string | null;
 }
 
-/** Lightweight product summary the core eager-loads onto matches/competitor rows. */
-export interface ProductRef {
+/** A monitoring-target reference (id + product_id) with its eager-loaded product, as the
+ * core attaches to matches/competitor rows via `target.product`. */
+export interface TargetRef {
   id: number;
   product_id?: number;
   product?: Product | null;
@@ -132,7 +133,7 @@ export interface MatchProposal {
   evidence: MatchEvidence[] | null;
   confidence: number;
   status: string;
-  target?: ProductRef | null;
+  target?: TargetRef | null;
 }
 
 /** Competitor source summary (host/display name) eager-loaded onto a listing. */
@@ -145,7 +146,7 @@ export interface CompetitorSourceRef {
 /** A row of `GET /competitor-products` — a confirmed listing with its matched product,
  * source host and latest price observation. */
 export interface CompetitorListItem extends CompetitorProduct {
-  target?: ProductRef | null;
+  target?: TargetRef | null;
   source?: CompetitorSourceRef | null;
   latest_price?: PriceObservation | null;
 }
