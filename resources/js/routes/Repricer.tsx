@@ -175,7 +175,7 @@ export function Repricer() {
               )}
             </>
           ) : (
-            <div className="card-body empty">No rule selected.</div>
+            <div className="card-body empty">No repricing rules yet.</div>
           )}
         </div>
       </div>

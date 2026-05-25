@@ -215,9 +215,11 @@ export async function mockFetch<T>(
     const b = (body ?? {}) as { name?: string; scopes?: string[] };
     // Deterministic id/plaintext (monotonic counter) so mock behaviour and tests are stable.
     const id = nextApiKeyId();
-    const newKey = { id, name: b.name ?? 'New key', scopes: b.scopes ?? [], plaintext: `piprice_mock${String(id).padStart(8, '0')}` };
-    mockApiKeys.push({ ...newKey, last_used_at: null, expires_at: null, revoked_at: null, created_at: '2026-05-25T00:00:00Z' });
-    return { data: newKey } as T;
+    const plaintext = `piprice_mock${String(id).padStart(8, '0')}`;
+    // The stored key never holds the plaintext (mirrors the core: the secret is returned
+    // once in the POST response and is not retrievable afterwards).
+    mockApiKeys.push({ id, name: b.name ?? 'New key', scopes: b.scopes ?? [], last_used_at: null, expires_at: null, revoked_at: null, created_at: '2026-05-25T00:00:00Z' });
+    return { data: { id, name: b.name ?? 'New key', scopes: b.scopes ?? [], plaintext } } as T;
   }
   // Revoke API key
   const apiKeyDelete = method === 'DELETE' && path.match(/^\/api-keys\/(\d+)$/);
