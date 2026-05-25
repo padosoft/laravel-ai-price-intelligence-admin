@@ -93,6 +93,7 @@ export function Forecasts() {
                   key={f.id}
                   type="button"
                   className="cell-open-btn"
+                  aria-current={isSel ? 'true' : undefined}
                   onClick={() => setSelectedId(f.id)}
                   style={{
                     display: 'block', width: '100%', padding: '12px 14px',

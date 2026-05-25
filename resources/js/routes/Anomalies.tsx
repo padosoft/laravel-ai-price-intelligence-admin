@@ -113,7 +113,7 @@ export function Anomalies() {
 
       <div className="filter-bar" style={{ marginTop: 18 }}>
         {types.map((t) => (
-          <button key={t} type="button" className={`chip ${typeFilter === t ? 'active' : ''}`} onClick={() => setTypeFilter(t)}>
+          <button key={t} type="button" className={`chip ${typeFilter === t ? 'active' : ''}`} aria-pressed={typeFilter === t} onClick={() => setTypeFilter(t)}>
             {t === 'all' ? 'All types' : t}
             <span className="count">{t === 'all' ? anomalies.length : (typeCounts.get(t) ?? 0)}</span>
           </button>

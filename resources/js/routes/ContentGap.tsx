@@ -39,6 +39,7 @@ export function ContentGap() {
                   key={g.id}
                   type="button"
                   className="cell-open-btn"
+                  aria-current={isSel ? 'true' : undefined}
                   onClick={() => setSelectedId(g.id)}
                   style={{
                     display: 'block', width: '100%', padding: '12px 14px',

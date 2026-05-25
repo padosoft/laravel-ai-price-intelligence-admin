@@ -77,6 +77,7 @@ export function Assortment() {
                   key={c.category}
                   type="button"
                   className="cell-open-btn"
+                  aria-pressed={isSel}
                   onClick={() => setFocused(isSel ? null : c.category)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px',
