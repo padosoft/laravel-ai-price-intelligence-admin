@@ -15,7 +15,7 @@
         "illuminate/routing": "^11.0 || ^12.0 || ^13.0",
         "illuminate/support": "^11.0 || ^12.0 || ^13.0",
         "laravel/sanctum": "^4.0",
-        "padosoft/laravel-ai-price-intelligence": "^1.1"
+        "padosoft/laravel-ai-price-intelligence": "^1.5"
     },
     "require-dev": {
         "orchestra/testbench": "^9.0 || ^10.0",

@@ -73,3 +73,20 @@ jobs:
         run: npm run e2e:install
       - name: Playwright
         run: npm run e2e
+
+  visual:
+    runs-on: windows-latest
+    name: Playwright visual regression
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+      - name: Visual regression
+        # Baselines are committed for windows (matching this runner's font rendering); regenerate
+        # with `npm run e2e:visual:update` on Windows when an intentional UI change lands.
+        run: npm run e2e:visual

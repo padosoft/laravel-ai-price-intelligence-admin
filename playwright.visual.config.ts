@@ -1,11 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// E2E runs against the Vite preview server serving the built SPA with MSW-backed
-// fixtures, so scenarios are deterministic and need no live Laravel backend.
+// Visual-regression project. Runs the deterministic MSW mock preview and compares
+// `toHaveScreenshot` baselines. Baselines are OS-specific (font antialiasing differs across
+// platforms), so this suite runs on the SAME OS the baselines were generated on — see the
+// `visual` CI job (windows-latest) and `npm run e2e:visual:update` to regenerate.
 export default defineConfig({
   testDir: './tests/e2e',
-  // Visual-regression specs have their own config + OS-matched baselines (playwright.visual.config.ts).
-  testIgnore: '**/visual.spec.ts',
+  testMatch: '**/visual.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
