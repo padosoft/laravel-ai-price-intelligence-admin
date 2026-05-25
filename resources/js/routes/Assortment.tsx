@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { I } from '@/components/ds/icons';
 import { Treemap, type TreemapItem } from '@/components/charts';
 import { useAssortmentGaps } from '@/hooks/operate';
+import { safeHttpUrl } from '@/lib/url';
 import type { AssortmentGap } from '@/lib/api/types';
 
 interface CategoryAgg {
@@ -123,8 +124,8 @@ export function Assortment() {
                   <td className="center mono">{g.importance_score}</td>
                   <td><span className={`badge ${g.status === 'open' ? 'paused' : 'pending'}`}><span className="dot" />{g.status}</span></td>
                   <td>
-                    {g.competitor_product_url
-                      ? <a className="id-link mono" href={g.competitor_product_url} target="_blank" rel="noreferrer noopener" style={{ fontSize: 11 }}>open</a>
+                    {safeHttpUrl(g.competitor_product_url)
+                      ? <a className="id-link mono" href={safeHttpUrl(g.competitor_product_url)} target="_blank" rel="noreferrer noopener" style={{ fontSize: 11 }}>open</a>
                       : '—'}
                   </td>
                 </tr>

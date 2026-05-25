@@ -22,7 +22,9 @@ function projectForecast(lastPrice: number | null, f: Forecast, startMs: number)
   const target = f.forecast_price_cents;
   const lo = f.ci_low_cents ?? target;
   const hi = f.ci_high_cents ?? target;
-  const steps = Math.max(2, Math.min(30, f.horizon_days));
+  // Clamp to [1, 30] so a 1-day horizon yields a single point at the forecast date rather
+  // than overshooting to day 2.
+  const steps = Math.max(1, Math.min(30, f.horizon_days));
   return Array.from({ length: steps }, (_, i) => {
     const frac = (i + 1) / steps;
     const price = Math.round(lastPrice + (target - lastPrice) * frac);
