@@ -28,9 +28,9 @@ test('system screens render via the sidebar', async ({ page }) => {
   await expect(page.getByTestId('page-settings')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
 
-  // color-contrast + heading-order are prototype design-system items handled in A7.
+  // color-contrast is enforced (AA-darkened tokens); only heading-order remains deferred.
   const results = await new AxeBuilder({ page })
-    .disableRules(['color-contrast', 'heading-order'])
+    .disableRules(['heading-order'])
     .analyze();
   expect(results.violations).toHaveLength(0);
 });

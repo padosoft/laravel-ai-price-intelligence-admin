@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { I } from '@/components/ds/icons';
 import { BrandMark } from '@/components/ds/pricing';
 import type { NavCounts, RouteKey, Tenant, TenantFeatures, User } from '@/lib/types';
@@ -14,6 +15,7 @@ export interface SidebarProps {
 
 /** Left navigation rail (ported from shell.jsx Sidebar). */
 export function Sidebar({ route, onNavigate, counts = {}, features = {}, user, tenant }: SidebarProps) {
+  const { t } = useTranslation();
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -27,7 +29,7 @@ export function Sidebar({ route, onNavigate, counts = {}, features = {}, user, t
       <nav className="sidebar-nav">
         {NAV_GROUPS.map((group) => (
           <div className="nav-section" key={group.label}>
-            <div className="nav-label">{group.label}</div>
+            <div className="nav-label">{t(`groups.${group.label.toLowerCase()}`, group.label)}</div>
             {group.items.map((item) => {
               if (!isFeatureVisible(features, item.feature)) return null;
               const IconCmp = I[item.icon] ?? I.Hash;
@@ -41,7 +43,7 @@ export function Sidebar({ route, onNavigate, counts = {}, features = {}, user, t
                   onClick={() => onNavigate(item.key)}
                 >
                   <IconCmp size={15} className="icon" />
-                  <span>{item.label}</span>
+                  <span>{t(`nav.${item.key}`, item.label)}</span>
                   {badge != null && badge > 0 && (
                     <span className={`badge ${item.badgeKey === 'alerts' ? 'danger' : ''}`}>{badge}</span>
                   )}

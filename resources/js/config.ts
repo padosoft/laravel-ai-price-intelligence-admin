@@ -18,7 +18,9 @@ declare global {
 const fallback: AdminRuntimeConfig = {
   apiBaseUrl: '/api/v1',
   auth: { mode: 'cookie' },
-  locale: 'it',
+  // Dev/demo default; the host injects the tenant's locale via window.__PI_ADMIN__.
+  // English-first here so the standalone demo matches the prototype copy.
+  locale: 'en',
   csrfCookie: 'XSRF-TOKEN',
   realtime: { driver: 'sse' },
   useMocks: true,

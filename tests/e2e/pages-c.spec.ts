@@ -28,10 +28,10 @@ test('intelligence screens render via the sidebar', async ({ page }) => {
   await expect(page.getByTestId('page-reviews')).toBeVisible();
   await expect(page.getByText('Battery life')).toBeVisible();
 
-  // Roles/labels/landmarks must be clean; color-contrast + heading-order are the prototype
-  // design-system items handled in the A7 a11y/dark phase.
+  // color-contrast is enforced (AA-darkened tokens). Only heading-order (h1→h3 card-titles)
+  // remains a deferred best-practice DS item.
   const results = await new AxeBuilder({ page })
-    .disableRules(['color-contrast', 'heading-order'])
+    .disableRules(['heading-order'])
     .analyze();
   expect(results.violations).toHaveLength(0);
 });

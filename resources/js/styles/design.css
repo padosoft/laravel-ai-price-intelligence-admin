@@ -37,18 +37,20 @@
   --text-disabled: #b8b8be;
   --text-inverse: #ffffff;
 
-  --accent: #0e9f6e;          /* signature green (status secondary) */
-  --accent-hover: #0d8a5f;
+  --accent: #047857;          /* signature green, AA-darkened for light theme (was #0e9f6e) */
+  --accent-hover: #036249;
   --accent-bg: rgba(14, 159, 110, 0.08);
   --accent-border: rgba(14, 159, 110, 0.24);
 
   --status-running: #0066ff;
   --status-running-bg: rgba(0, 102, 255, 0.08);
-  --status-success: #0e9f6e;
+  /* Foregrounds darkened to meet WCAG AA (4.5:1) on their faint tint backgrounds and on
+     the page surface; the dark theme (below) keeps the brighter values. */
+  --status-success: #047857;
   --status-success-bg: rgba(14, 159, 110, 0.08);
-  --status-failed: #dc2626;
+  --status-failed: #b91c1c;
   --status-failed-bg: rgba(220, 38, 38, 0.08);
-  --status-paused: #d97706;
+  --status-paused: #b45309;
   --status-paused-bg: rgba(217, 119, 6, 0.08);
   --status-pending: #71717a;
   --status-pending-bg: rgba(113, 113, 122, 0.08);
@@ -1206,9 +1208,9 @@ button { background: transparent; border: 0; padding: 0; cursor: pointer; }
      - cheaper = competitor undercuts us = THREAT = warm red/coral
      - pricier = competitor more expensive than us = SAFE = the same green as accent
      - parity  = within ±1% = neutral grey */
-  --price-cheaper: #dc2626;
+  --price-cheaper: #b91c1c;
   --price-cheaper-bg: rgba(220, 38, 38, 0.08);
-  --price-pricier: #0e9f6e;
+  --price-pricier: #047857;
   --price-pricier-bg: rgba(14, 159, 110, 0.08);
   --price-parity: #71717a;
   --price-parity-bg: rgba(113, 113, 122, 0.08);

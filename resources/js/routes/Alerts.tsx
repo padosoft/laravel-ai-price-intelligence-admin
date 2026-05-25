@@ -3,6 +3,7 @@ import { I } from '@/components/ds/icons';
 import { KpiTile, AlertFeedRow } from '@/components/screens/shared';
 import { useToast } from '@/components/ds';
 import { useAlerts, useAlertActions } from '@/hooks/operate';
+import { useAlertStream } from '@/lib/realtime/useAlertStream';
 import type { Severity } from '@/lib/api/types';
 
 const SEVERITIES: Array<Severity | 'all'> = ['all', 'high', 'medium', 'low'];
@@ -13,6 +14,7 @@ export function Alerts() {
   const all = useMemo(() => data?.data ?? [], [data]);
   const { ack } = useAlertActions();
   const toast = useToast();
+  const stream = useAlertStream();
 
   const [sev, setSev] = useState<Severity | 'all'>('all');
   const [ackFilter, setAckFilter] = useState<(typeof ACK_FILTERS)[number]>('unacked');
@@ -31,7 +33,15 @@ export function Alerts() {
     <div className="page" data-testid="page-alerts">
       <div className="page-head">
         <div>
-          <h1 className="page-title">Alerts inbox</h1>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            Alerts inbox
+            {stream.supported && (
+              <span className="live-pill" style={{ fontSize: 10 }} title={stream.connected ? 'Live stream connected' : 'Reconnecting…'}>
+                <span className={`pulse ${stream.connected ? '' : 'idle'}`} />
+                {stream.connected ? 'Live' : 'Reconnecting'}
+              </span>
+            )}
+          </h1>
           <p className="page-sub">
             Real-time stream from <span className="mono">/api/v1/alerts/stream</span> (SSE). Channels: webhook, mail, Slack, Teams.
           </p>

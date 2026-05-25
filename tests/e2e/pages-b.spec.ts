@@ -34,12 +34,10 @@ test('competitors: list, host filter, and drill into detail', async ({ page }) =
   await page.getByRole('button', { name: 'Audit' }).click();
   await expect(page.getByText('Fetch audit log')).toBeVisible();
 
-  // color-contrast (.badge/.price-delta token ratios) and heading-order (the global h1→h3
-  // card-title pattern) are inherited verbatim from the pixel-perfect prototype's design
-  // system; the contrast/dark-parity sweep is the dedicated A7 phase. Everything else
-  // (roles, names, labels, landmarks) must be clean here.
+  // color-contrast is enforced (tokens AA-darkened in A7). heading-order (the global h1→h3
+  // card-title pattern) remains a best-practice DS item tracked separately.
   const results = await new AxeBuilder({ page })
-    .disableRules(['color-contrast', 'heading-order'])
+    .disableRules(['heading-order'])
     .analyze();
   expect(results.violations).toHaveLength(0);
 });
