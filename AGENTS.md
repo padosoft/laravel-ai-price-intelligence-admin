@@ -55,5 +55,56 @@ For EVERY phase, in order:
    sync `main`, mark the phase done, start the next phase — until the admin roadmap is 100% complete,
    then tag v1.0.0 + GitHub release.
 
-## Final task
-Consolidate `docs/LESSON.md` learnings into this `AGENTS.md` and `.claude/rules`.
+## Distilled lessons (A0–A8 — consolidated from docs/LESSON.md + PR review loops)
+
+**Environment / tooling**
+- Windows Herd box: PHP/Composer are on the **PowerShell** PATH, not bash. Run `php`/`composer`/
+  `vendor\bin\*` via PowerShell; use Bash for git/npm/`gh`. Node ≥ 24.
+- `vendor\bin\phpunit --filter "A|B"` breaks in PowerShell (the `|` hits the batch wrapper) — run
+  test files by path. PHPStan OOMs at the default worker limit — use `--memory-limit=1G`.
+- git `autocrlf` rewrites line endings; Pint/commit warnings about LF→CRLF are harmless. Pint's
+  repo-wide `line_ending` "fails" locally but CI (LF) is clean — verify only changed files locally.
+- The local `copilot --autopilot --yolo` review **edits + commits**; always re-run *all* gates after
+  it (it skips build + Playwright), and reconcile its changes.
+
+**Testing**
+- Playwright `getByText` is substring + case-insensitive → strict-mode collisions. Assert headings
+  via `getByRole('heading', { name, level })`; use `{ exact: true }` for ambiguous substrings.
+- Headings that embed an `AiBadge`/badge have a composite accessible name — match with a regex, or
+  pin `level: 1` for the page title.
+- Vitest isolates modules per file; Playwright resets per page-load — but stateful mocks still need
+  a `beforeEach(resetMockState())` within a file once mutations are involved.
+- Screens using `useAuth`/`useAlertStream` need their provider in the test wrapper (or a manual
+  `AuthContext.Provider`) — e.g. the API-keys access-denied branch.
+
+**React / architecture**
+- A file that exports a component **and** a hook trips `react-refresh/only-export-components`. Split
+  context/hooks into a `*-context.ts` and keep the provider in its own `*.tsx` (mirror AuthProvider).
+- Module-level constants used in a `useEffect` must **not** be added to the dep array
+  (`exhaustive-deps` rejects them). If a reviewer insists, build the value inside the effect or call
+  a module function so there's no captured symbol — keep `max-warnings=0` green.
+- Optimistic mutations: gate the success toast on `onSuccess` and roll back on `onError`; coordinate
+  a timed "advance" with the rollback (closure-local flags) so a failed item is restored exactly once.
+- Always validate scraped/external URLs with `safeHttpUrl()` before an `href` (reject
+  `javascript:`/`data:`). Use `price_base_cents ?? price_cents`; treat `0` as valid (`!= null`, not
+  truthiness). Cap live-prepended caches to the page size.
+
+**API / realtime / i18n**
+- Backfill the **core** for any missing API/option, release it, then wire the admin — never mock a
+  gap. Type response envelopes that carry `meta` (e.g. `/reviews` `meta.enabled`).
+- The core SSE stream emits **named** events (`event: alert`/`heartbeat`) — use
+  `addEventListener('alert', …)`, not `onmessage`. Wrap `new EventSource(...)` in try/catch.
+  Subscribe **once** app-wide via a provider, not per-route.
+- Normalise the API base once (`config.apiBase`, strips trailing slashes) and reuse it everywhere
+  (client + stream URL). Locale matching uses `startsWith('en')` so `en-US` resolves to English; keep
+  `<html lang>` synced on `languageChanged`.
+
+**a11y**
+- AA contrast: the prototype's bright `--status-*`/`--price-*`/`--accent` greens/reds fail 4.5:1 on
+  their tints in light theme — darken the light-theme foregrounds (dark theme already passes) and
+  keep the `-bg` tints on the same hue. Expose selection state with `aria-pressed`/`aria-current`,
+  live regions with `aria-live`, and keep one `<h1>` per page (`heading-order` for the global
+  `h1→h3` card-title pattern is the one deferred best-practice item).
+
+## Final task — DONE
+LESSON.md learnings consolidated above. Admin roadmap A0–A8 complete; v1.0.0 tagged.
