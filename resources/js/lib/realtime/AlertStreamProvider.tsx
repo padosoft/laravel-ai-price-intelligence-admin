@@ -43,6 +43,8 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
       }
     };
     return () => { es.close(); setConnected(false); };
+    // apiBase is a module-level constant (not reactive), so it is intentionally not a dep —
+    // react-hooks/exhaustive-deps rejects it as an unnecessary dependency.
   }, [supported, qc]);
 
   return <AlertStreamContext.Provider value={{ connected, supported }}>{children}</AlertStreamContext.Provider>;
