@@ -74,6 +74,55 @@ export function useCatalog() {
   });
 }
 
+/** Payload for creating a single SKU (POST /catalog/products:bulk with a one-item batch). */
+export interface NewSkuInput {
+  external_id: string;
+  name: string;
+  sku?: string;
+  brand?: string;
+  our_price_cents?: number;
+  currency?: string;
+  base_country?: string;
+}
+
+/**
+ * Catalog write actions. `createSku` optimistically prepends the new product to the cached
+ * catalog page (rollback on error) and posts a one-item bulk batch; `importCsv` uploads a
+ * multipart CSV file and re-syncs the catalog on completion.
+ */
+export function useCatalogActions() {
+  const qc = useQueryClient();
+
+  const createSku = useOptimisticCreate<NewSkuInput, Product, { data: { upserted: number } }>(
+    ['catalog', 'products'],
+    (input) => api.post<{ data: { upserted: number } }>('/catalog/products:bulk', { products: [input] }),
+    (input) => ({
+      id: nextTempId(),
+      external_id: input.external_id,
+      sku: input.sku ?? null,
+      gtin: null,
+      mpn: null,
+      brand: input.brand ?? null,
+      model: null,
+      name: input.name,
+      our_price_cents: input.our_price_cents ?? null,
+      currency: input.currency ?? null,
+      base_country: input.base_country ?? null,
+    }),
+  );
+
+  const importCsv = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return api.post<{ data: { imported: number } }>('/catalog/products:csv', form);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['catalog', 'products'] }),
+  });
+
+  return { createSku, importCsv };
+}
+
 export function useTargets(status?: TargetStatus | 'all') {
   return useQuery({
     queryKey: ['targets', status ?? 'all'],

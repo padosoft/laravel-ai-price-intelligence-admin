@@ -39,8 +39,10 @@ async function request<T>(method: string, path: string, opts: RequestOptions = {
     return mockFetch<T>(method, path, opts.query, opts.body);
   }
 
+  const isFormData = typeof FormData !== 'undefined' && opts.body instanceof FormData;
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+  // Let the browser set multipart boundaries for FormData; only JSON bodies are stringified.
+  if (opts.body !== undefined && !isFormData) headers['Content-Type'] = 'application/json';
 
   const bearer = runtimeConfig.auth.mode === 'bearer';
   if (bearer) {
@@ -58,7 +60,7 @@ async function request<T>(method: string, path: string, opts: RequestOptions = {
     // Cookies only matter in SPA mode; bearer mode is stateless.
     credentials: bearer ? 'omit' : 'include',
     headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    body: opts.body === undefined ? undefined : isFormData ? (opts.body as FormData) : JSON.stringify(opts.body),
     signal: opts.signal,
   });
 

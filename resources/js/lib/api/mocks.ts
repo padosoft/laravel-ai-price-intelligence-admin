@@ -95,6 +95,7 @@ let mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
 let mockApiKeys = API_KEYS.map((k) => ({ ...k }));
 let mockTargets = TARGETS.map((t) => ({ ...t }));
 let mockCompetitors = COMPETITOR_LIST.map((c) => ({ ...c }));
+let mockProducts = PRODUCTS.map((p) => ({ ...p }));
 let mockTenantSettings: TenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
 let apiKeySeq = 90000;
 function nextApiKeyId(): number { return ++apiKeySeq; }
@@ -110,6 +111,7 @@ export function resetMockState(): void {
   mockApiKeys = API_KEYS.map((k) => ({ ...k }));
   mockTargets = TARGETS.map((t) => ({ ...t }));
   mockCompetitors = COMPETITOR_LIST.map((c) => ({ ...c }));
+  mockProducts = PRODUCTS.map((p) => ({ ...p }));
   mockTenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
   apiKeySeq = 90000;
   resourceSeq = 800000;
@@ -127,7 +129,31 @@ const handlers: Record<string, Handler> = {
     return { data: { settings: mockTenantSettings } };
   },
   'GET /stats': () => ({ data: STATS }),
-  'GET /catalog/products': () => page(PRODUCTS),
+  'GET /catalog/products': () => page(mockProducts),
+  'POST /catalog/products:bulk': (_query, body) => {
+    const items = ((body as { products?: Array<Record<string, unknown>> } | undefined)?.products) ?? [];
+    for (const it of items) {
+      mockProducts = [{
+        id: nextResourceId(),
+        external_id: String(it.external_id ?? ''),
+        sku: (it.sku as string | undefined) ?? null,
+        gtin: (it.gtin as string | undefined) ?? null,
+        mpn: (it.mpn as string | undefined) ?? null,
+        brand: (it.brand as string | undefined) ?? null,
+        model: (it.model as string | undefined) ?? null,
+        name: String(it.name ?? ''),
+        our_price_cents: (it.our_price_cents as number | undefined) ?? null,
+        currency: (it.currency as string | undefined) ?? null,
+        base_country: (it.base_country as string | undefined) ?? null,
+      }, ...mockProducts];
+    }
+    return { data: { upserted: items.length } };
+  },
+  'POST /catalog/products:csv': () => {
+    // The real core parses the uploaded file; the mock just acknowledges a fixed import count
+    // (FormData bodies aren't introspected here) so the screen flow + invalidation are exercised.
+    return { data: { imported: 0 } };
+  },
   'GET /targets': (query) => {
     const status = query?.status as string | undefined;
     return page(status ? mockTargets.filter((t) => t.status === status) : mockTargets);

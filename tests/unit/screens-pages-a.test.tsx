@@ -41,6 +41,32 @@ describe('Catalog', () => {
     expect(screen.queryByText('Acme X1 Pro 128GB Smartphone')).not.toBeInTheDocument();
     expect(screen.getByText('Nova OLED 55" 4K TV')).toBeInTheDocument();
   });
+
+  it('creates a SKU via the modal (POST /catalog/products:bulk)', async () => {
+    const user = userEvent.setup();
+    wrap(<Catalog onNavigate={() => {}} />);
+    await waitFor(() => expect(screen.getByText('Acme X1 Pro 128GB Smartphone')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /New SKU/ }));
+    const dialog = screen.getByRole('dialog');
+    const create = within(dialog).getByRole('button', { name: /Create SKU/ });
+    expect(create).toBeDisabled();
+    await user.type(within(dialog).getByLabelText('External ID'), 'NEW-SKU-1');
+    await user.type(within(dialog).getByLabelText('Name'), 'Test Widget 9000');
+    expect(create).toBeEnabled();
+    await user.click(create);
+    await waitFor(() => expect(screen.getByText('SKU created')).toBeInTheDocument());
+    // The product appears in the table after the optimistic insert / refetch.
+    await waitFor(() => expect(within(screen.getByRole('table')).getByText('Test Widget 9000')).toBeInTheDocument());
+  });
+
+  it('imports a CSV file (POST /catalog/products:csv)', async () => {
+    const user = userEvent.setup();
+    wrap(<Catalog onNavigate={() => {}} />);
+    await waitFor(() => expect(screen.getByText('Acme X1 Pro 128GB Smartphone')).toBeInTheDocument());
+    const file = new File(['external_id,name\nX,Y'], 'catalog.csv', { type: 'text/csv' });
+    await user.upload(screen.getByTestId('csv-input') as HTMLInputElement, file);
+    await waitFor(() => expect(screen.getByText('CSV import queued')).toBeInTheDocument());
+  });
 });
 
 describe('Targets', () => {

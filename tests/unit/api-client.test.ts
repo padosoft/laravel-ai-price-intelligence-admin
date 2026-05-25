@@ -21,6 +21,14 @@ describe('api client (mock-backed in tests)', () => {
     const res = await api.get<{ data: unknown[] }>('/audit/fetch-logs');
     expect(res.data).toEqual([]);
   });
+
+  it('accepts a FormData body for multipart uploads (CSV import)', async () => {
+    // FormData bypasses JSON.stringify / Content-Type in the client; the csv mock acknowledges it.
+    const form = new FormData();
+    form.append('file', new File(['external_id,name\nX,Y'], 'catalog.csv', { type: 'text/csv' }));
+    const res = await api.post<{ data: { imported: number } }>('/catalog/products:csv', form);
+    expect(res.data.imported).toBe(0);
+  });
 });
 
 describe('ApiError', () => {
