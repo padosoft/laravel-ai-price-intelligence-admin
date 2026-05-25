@@ -3,15 +3,20 @@ import { api, unwrap } from '@/lib/api/client';
 import type {
   Alert,
   Anomaly,
+  AssortmentGap,
   CompetitorDetail,
   CompetitorListItem,
+  ContentGap,
   CursorPage,
   FetchLog,
+  Forecast,
   MatchProposal,
   MonitoringTarget,
+  Narrative,
   PriceObservation,
   Product,
   Resource,
+  ReviewInsight,
   TargetStatus,
 } from '@/lib/api/types';
 
@@ -115,6 +120,48 @@ export function useCompetitorDetail(id: number) {
     queryKey: ['competitor-products', id],
     queryFn: () => api.get<Resource<CompetitorDetail>>(`/competitor-products/${id}`).then(unwrap),
     enabled: id > 0,
+  });
+}
+
+// ---- Intelligence (A5) ----
+
+/** Price forecasts (statistical model + confidence interval). */
+export function useForecasts() {
+  return useQuery({
+    queryKey: ['forecasts'],
+    queryFn: () => api.get<CursorPage<Forecast>>('/forecasts'),
+  });
+}
+
+/** Weekly AI narrative digests; optionally a specific ISO week period. */
+export function useNarratives(period?: string) {
+  return useQuery({
+    queryKey: ['narratives', period ?? 'latest'],
+    queryFn: () => api.get<CursorPage<Narrative>>('/narratives', period ? { period } : undefined),
+  });
+}
+
+/** Assortment gaps — categories where competitors list SKUs we don't. */
+export function useAssortmentGaps() {
+  return useQuery({
+    queryKey: ['assortment-gaps'],
+    queryFn: () => api.get<CursorPage<AssortmentGap>>('/assortment-gaps'),
+  });
+}
+
+/** Per-product content/SEO gap analysis. */
+export function useContentGaps() {
+  return useQuery({
+    queryKey: ['content-gaps'],
+    queryFn: () => api.get<CursorPage<ContentGap>>('/content-gaps'),
+  });
+}
+
+/** GDPR-safe aggregated review sentiment (feature-gated by review_insight). */
+export function useReviews(period?: string) {
+  return useQuery({
+    queryKey: ['reviews', period ?? 'all'],
+    queryFn: () => api.get<CursorPage<ReviewInsight>>('/reviews', period ? { period } : undefined),
   });
 }
 

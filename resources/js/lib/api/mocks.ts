@@ -3,11 +3,16 @@ import type { CursorPage, DashboardStats, TenantMe } from './types';
 import {
   ALERTS,
   ANOMALIES,
+  ASSORTMENT_GAPS,
   COMPETITOR_LIST,
+  CONTENT_GAPS,
+  FORECASTS,
   MATCH_PROPOSALS,
+  NARRATIVES,
   PRICE_SERIES,
   PRICE_SERIES_BY_CP,
   PRODUCTS,
+  REVIEWS,
   TARGETS,
 } from './fixtures';
 
@@ -95,6 +100,18 @@ const handlers: Record<string, Handler> = {
         m.status === status && (status !== 'pending' || !processedMatchIds.has(m.id)),
       ),
     );
+  },
+  'GET /forecasts': () => page(FORECASTS),
+  'GET /narratives': (query) => {
+    const period = query?.period as string | undefined;
+    return page(period ? NARRATIVES.filter((n) => n.period === period) : NARRATIVES);
+  },
+  'GET /assortment-gaps': () => page(ASSORTMENT_GAPS),
+  'GET /content-gaps': () => page(CONTENT_GAPS),
+  'GET /reviews': (query) => {
+    const period = query?.period as string | undefined;
+    const data = period ? REVIEWS.filter((r) => r.period === period) : REVIEWS;
+    return { ...page(data), meta: { enabled: true } };
   },
   'GET /competitor-products': (query) => {
     const host = query?.host as string | undefined;
