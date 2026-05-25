@@ -103,7 +103,15 @@ export interface DownloadResult {
 function filenameFromDisposition(header: string | null): string | null {
   if (!header) return null;
   const star = header.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
-  if (star) return decodeURIComponent(star[1].replace(/^"|"$/g, ''));
+  if (star) {
+    const raw = star[1].replace(/^"|"$/g, '');
+    // Malformed percent-encoding would make decodeURIComponent throw; fall back to the raw value.
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  }
   const plain = header.match(/filename="?([^";]+)"?/i);
   return plain ? plain[1] : null;
 }

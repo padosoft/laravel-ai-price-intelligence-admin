@@ -49,7 +49,13 @@ export function Dashboard({ onNavigate }: { onNavigate: (r: RouteKey) => void })
 
   const qc = useQueryClient();
   const toast = useToast();
-  const refresh = () => { void qc.invalidateQueries(); toast.push({ title: 'Refreshing', body: 'Re-fetching live metrics…' }); };
+  const refresh = () => {
+    // Only the queries this dashboard renders — not every cache (identity/settings/etc.).
+    for (const key of [['stats'], ['alerts'], ['anomalies'], ['observations']]) {
+      void qc.invalidateQueries({ queryKey: key });
+    }
+    toast.push({ title: 'Refreshing', body: 'Re-fetching live metrics…' });
+  };
   const exportDigest = () => { toast.push({ title: 'Preparing digest', body: 'Opening the print dialog…' }); printDocument(); };
 
   const s = stats.data;

@@ -34,7 +34,9 @@ export function Webhooks() {
     if (!isHttpsUrl(url)) return;
     const eventList = events.split(',').map((e) => e.trim()).filter(Boolean);
     create.mutate(
-      { url: url.trim(), events: eventList, secret: secret.trim() || undefined },
+      // Omit events when blank so the core applies its `['*']` (all events) default — matches
+      // the modal copy. Sending `[]` would instead subscribe to nothing.
+      { url: url.trim(), events: eventList.length > 0 ? eventList : undefined, secret: secret.trim() || undefined },
       {
         onSuccess: () => { toast.push({ title: 'Subscription created', body: url.trim() }); setOpen(false); setUrl(''); setEvents(''); setSecret(''); },
         onError: () => toast.push({ title: 'Could not create subscription', kind: 'error' }),
