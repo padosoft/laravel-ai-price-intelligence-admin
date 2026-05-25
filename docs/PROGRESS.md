@@ -33,10 +33,9 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
   Playwright **visual regression** (`tests/e2e/visual.spec.ts` + `playwright.visual.config.ts`,
   `toHaveScreenshot` on Dashboard/Catalog/Competitors/Compliance, live-pill masked) on a dedicated
   **windows-latest `visual` CI job** (baselines are OS-matched); default ubuntu e2e ignores visual.
-- [ ] **B5** — wire placeholder actions/forms: New target/SKU/repricing-rule/webhook; Import CSV;
-  Add-by-URL; Trigger discovery; **Export** CSV/PDF/digest (consumes `:export`); Compliance
-  risk-register/attestation; **Settings write** (consumes `PATCH /tenants/me/settings`). Validated,
-  optimistic+rollback, integration-tested. No dead buttons remain.
+- [x] **B5** — wire placeholder actions/forms (see "B5 wiring progress" below): all actions wired,
+  optimistic+rollback, per-action vitest; no dead buttons remain. Required core **v1.6.0** anomaly-ack
+  backfill (PR #16). On `feat/admin-b5-wire-actions`.
 - [ ] **B6** — enterprise UX (500k SKU): infinite-scroll/cursor pagination on every list; table
   **virtualization** (`@tanstack/react-virtual`); Competitors **host-count chips** (`/facets/hosts`);
   **AI-decision-log viewer** in Compliance (`GET /ai-decisions`).
@@ -45,13 +44,26 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
 - [ ] **B8** — release hygiene: admin **CHANGELOG.md**, deploy + user/admin guides, consolidate
   B-phase lessons into AGENTS.md/.claude/rules; tag admin **v1.1.0** + release.
 
-### B5 wiring progress (live)
-- [x] **Settings write** — General (alert email + table density) + Notification channels editable
-  forms → `PATCH /tenants/me/settings` via `useUpdateSettings` (optimistic merge of `['tenants','me']`
-  + rollback + settle-invalidate). Mock: mutable `mockTenantSettings`, `me().tenant.settings` exposed.
-  +2 vitest. (57 vitest green, build OK.)
-- [ ] New target · Add-by-URL · Trigger discovery · New SKU · Import CSV · New rule · New webhook ·
-  Exports (CSV/PDF/digest) · Compliance attestation.
+### B5 wiring progress — COMPLETE ✅ (74 vitest green, typecheck/lint/build OK)
+- [x] **Settings write** → `PATCH /tenants/me/settings` (`useUpdateSettings`, optimistic merge of
+  `['tenants','me']` + rollback). Editable General (alert email + density) + Notification channels.
+- [x] **New target** → `POST /targets` (modal; `useTargetActions.create`, optimistic via reusable
+  `useOptimisticCreate` helper). **Add-by-URL** → `POST /competitor-products`; **Trigger discovery**
+  → `POST /targets/{id}/discover:now` (`useCompetitorActions`).
+- [x] **New SKU** → `POST /catalog/products:bulk`; **Import CSV** → multipart `POST
+  /catalog/products:csv` (client now passes FormData through). **New rule** → `POST /rules`.
+  **New webhook** → `POST /webhook-subscriptions`.
+- [x] **Exports**: Catalog/Prices **Export CSV** → `GET …:export` (client `fetchBlob`/`saveBlob`/
+  `downloadCsv` + `useCsvExport`; mock synthesizes the streamed CSV). Dashboard digest / Narrative
+  PDF / Compliance attestation → `printDocument()` (browser print-to-PDF of real content; PDF-deferred
+  per spec). Assortment Export → client-side CSV of loaded gaps. Dashboard Refresh → invalidate.
+  Alerts "Channels" → navigate to Settings.
+- [x] **Anomalies acknowledge + bulk** → `POST /anomalies/{id}/ack` + `POST /anomalies:ack`
+  (`useAnomalyActions`). **Required core backfill v1.6.0** (PR #16): anomaly-ack endpoints didn't
+  exist — implemented+released in core first per the gap-backfill policy, then wired here.
+- Reusable `useOptimisticCreate(prefix, fn, buildTemp)` (operate.ts): optimistic prepend across all
+  cursor-page caches matching the key prefix, rollback on error, settle-invalidate; guards against
+  non-list sibling caches (e.g. `['competitor-products', id]` detail). Temp rows use negative ids.
 
 ### Next action (B5) — resume analysis (done before any code)
 The api client (`resources/js/lib/api/client.ts`) ALREADY has `api.post/patch/delete` + XSRF/bearer
