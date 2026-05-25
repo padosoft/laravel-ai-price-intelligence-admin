@@ -133,8 +133,9 @@ describe('Targets', () => {
     const dialog = screen.getByRole('dialog');
     const create = within(dialog).getByRole('button', { name: /Create target/ });
     expect(create).toBeDisabled();
-    // Country defaults to "IT"; choosing a product is all that's needed to enable submit.
-    await user.selectOptions(within(dialog).getByLabelText('Product'), 'Acme X1 Pro 128GB Smartphone');
+    // Country defaults to "IT"; choosing a product enables submit. Select by the option's stable
+    // value (the product id) rather than its label so the match is unambiguous.
+    await user.selectOptions(within(dialog).getByLabelText('Product'), '1');
     expect(create).toBeEnabled();
     await user.click(create);
     await waitFor(() => expect(screen.getByText('Target created')).toBeInTheDocument());
