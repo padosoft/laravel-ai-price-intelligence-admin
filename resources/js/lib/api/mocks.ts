@@ -133,7 +133,11 @@ const handlers: Record<string, Handler> = {
     return { data: { settings: mockTenantSettings } };
   },
   'GET /stats': () => ({ data: STATS }),
-  'GET /catalog/products': () => page(mockProducts),
+  'GET /catalog/products': (query) => {
+    // Honor the server-side brand filter (used by the virtualized/infinite Catalog list).
+    const brand = query?.brand as string | undefined;
+    return page(brand ? mockProducts.filter((p) => p.brand === brand) : mockProducts);
+  },
   'POST /catalog/products:bulk': (_query, body) => {
     const items = ((body as { products?: Array<Record<string, unknown>> } | undefined)?.products) ?? [];
     for (const it of items) {

@@ -53,7 +53,8 @@ describe('Catalog', () => {
     await waitFor(() => expect(screen.getByText('Acme X1 Pro 128GB Smartphone')).toBeInTheDocument());
     // Filter to Nova → Acme product disappears.
     await user.click(screen.getByRole('button', { name: /^Nova/ }));
-    expect(screen.queryByText('Acme X1 Pro 128GB Smartphone')).not.toBeInTheDocument();
+    // Brand filter is now server-side (infinite query refetches), so wait for the new page.
+    await waitFor(() => expect(screen.queryByText('Acme X1 Pro 128GB Smartphone')).not.toBeInTheDocument());
     expect(screen.getByText('Nova OLED 55" 4K TV')).toBeInTheDocument();
   });
 

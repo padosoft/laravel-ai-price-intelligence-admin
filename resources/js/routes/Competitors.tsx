@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { I } from '@/components/ds/icons';
 import { Price, PriceDelta, AiBadge, ConfidenceBadge, HostChip } from '@/components/ds/pricing';
 import { Modal, useToast } from '@/components/ds';
+import { VirtualTable } from '@/components/VirtualTable';
 import { ProductImg } from '@/components/screens/shared';
-import { useCompetitors, useCompetitorActions, useHostFacets, useTargets } from '@/hooks/operate';
+import { useCompetitorsInfinite, useCompetitorActions, useHostFacets, useTargets } from '@/hooks/operate';
 import { fmtNum } from '@/lib/format';
 import type { CompetitorListItem } from '@/lib/api/types';
 import type { RouteKey } from '@/lib/types';
@@ -25,8 +26,9 @@ function vsUsPct(item: CompetitorListItem): number | null {
 
 export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?: Record<string, unknown>) => void }) {
   const [host, setHost] = useState<string>('all');
-  const { data, isLoading } = useCompetitors(host === 'all' ? undefined : host);
-  const rows = useMemo(() => data?.data ?? [], [data]);
+  // Cursor-paginated + virtualized listing (server-side host filter).
+  const list = useCompetitorsInfinite(host === 'all' ? undefined : host);
+  const rows = useMemo(() => list.data?.pages.flatMap((p) => p.data) ?? [], [list.data]);
 
   // Host chips use EXACT per-host counts from the SQL facet endpoint (scales to 500k SKU; not a
   // count of the single loaded page).
@@ -150,72 +152,70 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
 
       <div className="card">
         <div className="card-body flush">
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Listing</th>
-                  <th>Host</th>
-                  <th>Matched to</th>
-                  <th className="center">Confidence</th>
-                  <th>Method</th>
-                  <th className="right">Price</th>
-                  <th className="right">vs us</th>
-                  <th>Stock</th>
-                  <th>Last seen</th>
+          <VirtualTable
+            rows={rows}
+            colCount={9}
+            testId="competitors-list"
+            hasNextPage={list.hasNextPage}
+            isFetchingNextPage={list.isFetchingNextPage}
+            onLoadMore={() => list.fetchNextPage()}
+            head={(
+              <tr>
+                <th>Listing</th>
+                <th>Host</th>
+                <th>Matched to</th>
+                <th className="center">Confidence</th>
+                <th>Method</th>
+                <th className="right">Price</th>
+                <th className="right">vs us</th>
+                <th>Stock</th>
+                <th>Last seen</th>
+              </tr>
+            )}
+            empty={!list.isLoading ? <tr><td colSpan={9} className="empty">No competitor listings</td></tr> : undefined}
+            renderRow={(c) => {
+              const product = c.target?.product;
+              const pct = vsUsPct(c);
+              const stock = stockBadge(c.latest_price?.available);
+              const open = () => onNavigate('competitor_detail', { competitorId: c.id });
+              return (
+                <tr key={c.id} onClick={open} style={{ cursor: 'pointer' }}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <ProductImg img={product?.brand?.slice(0, 2)} />
+                      <div>
+                        <button
+                          type="button"
+                          className="cell-open-btn"
+                          aria-label={`Open ${product?.name ?? c.url}`}
+                          onClick={(e) => { e.stopPropagation(); open(); }}
+                        >
+                          {product?.name ?? '—'}
+                        </button>
+                        <div className="mono tertiary" style={{ fontSize: 10.5, marginTop: 1 }}>{c.url}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{c.source?.host ? <HostChip host={c.source.host} /> : '—'}</td>
+                  <td className="muted">{product?.model ?? '—'}</td>
+                  <td className="center">{c.match_confidence != null ? <ConfidenceBadge value={c.match_confidence} /> : '—'}</td>
+                  <td>
+                    <span className="mono" style={{ fontSize: 11 }}>{c.match_method ?? '—'}</span>
+                    {c.match_method && AI_METHODS.has(c.match_method) && <AiBadge />}
+                  </td>
+                  <td className="right">{c.latest_price?.price_cents != null ? <Price cents={c.latest_price.price_cents} /> : '—'}</td>
+                  <td className="right">{pct != null ? <PriceDelta pct={pct} /> : '—'}</td>
+                  <td>
+                    <span className={`badge ${stock.cls}`}>
+                      <span className="dot" />
+                      {stock.label}
+                    </span>
+                  </td>
+                  <td className="mono muted">{c.last_seen_at ? c.last_seen_at.slice(0, 16).replace('T', ' ') : '—'}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {rows.map((c) => {
-                  const product = c.target?.product;
-                  const pct = vsUsPct(c);
-                  const stock = stockBadge(c.latest_price?.available);
-                  const open = () => onNavigate('competitor_detail', { competitorId: c.id });
-                  return (
-                    <tr key={c.id} onClick={open} style={{ cursor: 'pointer' }}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <ProductImg img={product?.brand?.slice(0, 2)} />
-                          <div>
-                            <button
-                              type="button"
-                              className="cell-open-btn"
-                              aria-label={`Open ${product?.name ?? c.url}`}
-                              onClick={(e) => { e.stopPropagation(); open(); }}
-                            >
-                              {product?.name ?? '—'}
-                            </button>
-                            <div className="mono tertiary" style={{ fontSize: 10.5, marginTop: 1 }}>{c.url}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{c.source?.host ? <HostChip host={c.source.host} /> : '—'}</td>
-                      <td className="muted">{product?.model ?? '—'}</td>
-                      <td className="center">{c.match_confidence != null ? <ConfidenceBadge value={c.match_confidence} /> : '—'}</td>
-                      <td>
-                        <span className="mono" style={{ fontSize: 11 }}>{c.match_method ?? '—'}</span>
-                        {c.match_method && AI_METHODS.has(c.match_method) && <AiBadge />}
-                      </td>
-                      <td className="right">{c.latest_price?.price_cents != null ? <Price cents={c.latest_price.price_cents} /> : '—'}</td>
-                      <td className="right">{pct != null ? <PriceDelta pct={pct} /> : '—'}</td>
-                      <td>
-                        <span className={`badge ${stock.cls}`}>
-                          <span className="dot" />
-                          {stock.label}
-                        </span>
-                      </td>
-                      <td className="mono muted">{c.last_seen_at ? c.last_seen_at.slice(0, 16).replace('T', ' ') : '—'}</td>
-                    </tr>
-                  );
-                })}
-                {!isLoading && rows.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="empty">No competitor listings</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              );
+            }}
+          />
         </div>
       </div>
     </div>

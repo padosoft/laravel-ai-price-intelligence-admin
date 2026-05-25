@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, downloadCsv, unwrap } from '@/lib/api/client';
 import type {
   Alert,
@@ -107,6 +107,27 @@ export function useCatalog() {
   return useQuery({
     queryKey: ['catalog', 'products'],
     queryFn: () => api.get<CursorPage<Product>>('/catalog/products'),
+  });
+}
+
+/** Page size for the virtualized/infinite enterprise lists (catalog, competitors). */
+const INFINITE_PAGE_SIZE = 100;
+
+/**
+ * Cursor-paginated, infinite catalog list for the virtualized Catalog table (500k-SKU scale).
+ * Follows the core's `next_cursor`; optional server-side `brand` filter so the DB does the work.
+ */
+export function useCatalogInfinite(brand?: string) {
+  return useInfiniteQuery({
+    queryKey: ['catalog', 'products', 'infinite', { brand: brand ?? 'all' }],
+    queryFn: ({ pageParam }) =>
+      api.get<CursorPage<Product>>('/catalog/products', {
+        per_page: INFINITE_PAGE_SIZE,
+        ...(brand && brand !== 'all' ? { brand } : {}),
+        ...(pageParam ? { cursor: pageParam } : {}),
+      }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.next_cursor,
   });
 }
 
@@ -244,6 +265,24 @@ export function useCompetitors(host?: string, productId?: number | null) {
         ...(host ? { host } : {}),
         ...(productId != null ? { product_id: productId } : {}),
       }),
+  });
+}
+
+/**
+ * Cursor-paginated, infinite competitor listing for the virtualized Competitors table. Optional
+ * host filter is applied server-side (so large catalogs page correctly).
+ */
+export function useCompetitorsInfinite(host?: string) {
+  return useInfiniteQuery({
+    queryKey: ['competitor-products', 'infinite', { host: host ?? 'all' }],
+    queryFn: ({ pageParam }) =>
+      api.get<CursorPage<CompetitorListItem>>('/competitor-products', {
+        per_page: INFINITE_PAGE_SIZE,
+        ...(host ? { host } : {}),
+        ...(pageParam ? { cursor: pageParam } : {}),
+      }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.next_cursor,
   });
 }
 

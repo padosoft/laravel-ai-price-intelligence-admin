@@ -3,12 +3,14 @@ import type { KeyboardEvent } from 'react';
 import { I } from '@/components/ds/icons';
 import { Price, Tag } from '@/components/ds/pricing';
 import { Modal, useToast } from '@/components/ds';
-import { useCatalog, useCatalogActions, useCsvExport } from '@/hooks/operate';
+import { VirtualTable } from '@/components/VirtualTable';
+import { useCatalog, useCatalogActions, useCatalogInfinite, useCsvExport } from '@/hooks/operate';
 import { fmtNum } from '@/lib/format';
 import type { RouteKey } from '@/lib/types';
 
 export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Record<string, unknown>) => void }) {
-  const { data, isLoading } = useCatalog();
+  // Page-1 query feeds the brand chips; the main list is cursor-paginated + virtualized.
+  const { data } = useCatalog();
   const products = useMemo(() => data?.data ?? [], [data]);
   const { createSku, importCsv } = useCatalogActions();
   const csvExport = useCsvExport();
@@ -69,7 +71,10 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
   const brands = useMemo(() => ['all', ...brandCounts.keys()], [brandCounts]);
   const [brand, setBrand] = useState('all');
 
-  const filtered = brand === 'all' ? products : products.filter((p) => p.brand === brand);
+  // Cursor-paginated, virtualized list (server-side brand filter). Pages are flattened for the
+  // virtualizer; infinite scroll fetches the next cursor as the user nears the end.
+  const list = useCatalogInfinite(brand);
+  const listRows = useMemo(() => list.data?.pages.flatMap((p) => p.data) ?? [], [list.data]);
 
   return (
     <div className="page" data-testid="page-catalog">
@@ -151,49 +156,45 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
 
       <div className="card">
         <div className="card-body flush">
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>SKU · GTIN</th>
-                  <th>Brand</th>
-                  <th className="right">Our price</th>
-                  <th>Country</th>
+          <VirtualTable
+            rows={listRows}
+            colCount={5}
+            testId="catalog-list"
+            hasNextPage={list.hasNextPage}
+            isFetchingNextPage={list.isFetchingNextPage}
+            onLoadMore={() => list.fetchNextPage()}
+            head={(
+              <tr>
+                <th>Product</th>
+                <th>SKU · GTIN</th>
+                <th>Brand</th>
+                <th className="right">Our price</th>
+                <th>Country</th>
+              </tr>
+            )}
+            empty={!list.isLoading ? <tr><td colSpan={5} className="empty">No products</td></tr> : undefined}
+            renderRow={(p) => {
+              const nav = () => onNavigate('competitor_detail', { product: p.id });
+              const handleKey = (e: KeyboardEvent<HTMLTableRowElement>) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav(); }
+              };
+              return (
+                <tr key={p.id} role="button" aria-label={`Open ${p.name}`} tabIndex={0} onClick={nav} onKeyDown={handleKey}>
+                  <td>
+                    <div style={{ fontWeight: 500, fontSize: 13 }}>{p.name}</div>
+                    <div className="mono tertiary" style={{ fontSize: 11, marginTop: 2 }}>{p.model ?? '—'}</div>
+                  </td>
+                  <td>
+                    <div className="mono" style={{ fontSize: 12 }}>{p.sku ?? '—'}</div>
+                    <div className="mono tertiary" style={{ fontSize: 10.5, marginTop: 2 }}>{p.gtin ?? '—'}</div>
+                  </td>
+                  <td className="muted">{p.brand ?? '—'}</td>
+                  <td className="right">{p.our_price_cents != null ? <Price cents={p.our_price_cents} /> : '—'}</td>
+                  <td>{p.base_country ? <Tag>{p.base_country}</Tag> : '—'}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p) => {
-                  const nav = () => onNavigate('competitor_detail', { product: p.id });
-                  const handleKey = (e: KeyboardEvent<HTMLTableRowElement>) => {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav(); }
-                  };
-                  return (
-                  <tr key={p.id} role="button" aria-label={`Open ${p.name}`} tabIndex={0} onClick={nav} onKeyDown={handleKey}>
-                    <td>
-                      <div style={{ fontWeight: 500, fontSize: 13 }}>{p.name}</div>
-                      <div className="mono tertiary" style={{ fontSize: 11, marginTop: 2 }}>
-                        {p.model ?? '—'}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="mono" style={{ fontSize: 12 }}>{p.sku ?? '—'}</div>
-                      <div className="mono tertiary" style={{ fontSize: 10.5, marginTop: 2 }}>{p.gtin ?? '—'}</div>
-                    </td>
-                    <td className="muted">{p.brand ?? '—'}</td>
-                    <td className="right">{p.our_price_cents != null ? <Price cents={p.our_price_cents} /> : '—'}</td>
-                    <td>{p.base_country ? <Tag>{p.base_country}</Tag> : '—'}</td>
-                  </tr>
-                  );
-                })}
-                {!isLoading && filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="empty">No products</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              );
+            }}
+          />
         </div>
       </div>
     </div>
