@@ -20,20 +20,28 @@ export interface AlertStreamState {
  */
 export function useAlertStream(enabled = true): AlertStreamState {
   const qc = useQueryClient();
-  const supported = !runtimeConfig.useMocks && runtimeConfig.realtime.driver === 'sse' && runtimeConfig.auth.mode === 'cookie';
+  const supported =
+    !runtimeConfig.useMocks &&
+    runtimeConfig.realtime.driver === 'sse' &&
+    runtimeConfig.auth.mode === 'cookie' &&
+    typeof EventSource !== 'undefined';
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    if (!enabled || !supported || typeof EventSource === 'undefined') return;
+    if (!enabled || !supported) return;
     const es = new EventSource(`${runtimeConfig.apiBaseUrl}/alerts/stream`, { withCredentials: true });
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false); // EventSource retries automatically
     es.onmessage = (ev: MessageEvent<string>) => {
       try {
         const alert = JSON.parse(ev.data) as Alert;
-        qc.setQueriesData<CursorPage<Alert>>({ queryKey: ['alerts'] }, (prev) =>
-          prev ? { ...prev, data: [alert, ...prev.data.filter((a) => a.id !== alert.id)] } : prev,
-        );
+        qc.setQueriesData<CursorPage<Alert>>({ queryKey: ['alerts'] }, (prev) => {
+          if (!prev) return prev;
+          // Prepend (deduped) and cap to the page size so the cached first page stays bounded
+          // — full history remains reachable via cursor pagination.
+          const cap = prev.per_page > 0 ? prev.per_page : 100;
+          return { ...prev, data: [alert, ...prev.data.filter((a) => a.id !== alert.id)].slice(0, cap) };
+        });
       } catch {
         // Ignore malformed frames (e.g. keep-alive comments).
       }
