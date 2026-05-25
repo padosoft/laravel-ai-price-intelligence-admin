@@ -3,7 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '@/components/layout/AppShell';
 import { CommandPalette } from '@/components/layout/CommandPalette';
 import { TenantSwitcher } from '@/components/layout/TenantSwitcher';
-import { ROUTE_TITLES } from '@/components/layout/nav';
+import { PageRouter } from '@/routes/PageRouter';
 import { ToastProvider } from '@/components/ds';
 import { createQueryClient } from '@/lib/api/queryClient';
 import { AuthProvider } from '@/state/AuthProvider';
@@ -39,6 +39,7 @@ function AppContent() {
 
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
   const [route, setRoute] = useState<RouteKey>('dashboard');
+  const [routeParams, setRouteParams] = useState<Record<string, unknown>>({});
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [tenantOpen, setTenantOpen] = useState(false);
 
@@ -62,8 +63,9 @@ function AppContent() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const navigate = useCallback((next: RouteKey) => {
+  const navigate = useCallback((next: RouteKey, params?: Record<string, unknown>) => {
     setRoute(next);
+    setRouteParams(params ?? {});
     document.querySelector('.content')?.scrollTo(0, 0);
   }, []);
 
@@ -86,8 +88,6 @@ function AppContent() {
     alerts: stats.data?.alerts_unacknowledged,
     anomalies: stats.data?.anomalies_24h,
   };
-
-  const title = (ROUTE_TITLES[route] ?? [route]).at(-1) ?? route;
 
   // Guard: session expired or auth request failed — don't render a silently broken shell.
   if (isError) {
@@ -120,23 +120,7 @@ function AppContent() {
         onOpenPalette={() => setPaletteOpen(true)}
         onOpenTenant={() => setTenantOpen(true)}
       >
-        <div className="page" data-testid="app-page">
-          <div className="page-head">
-            <div>
-              <h1 className="page-title">{title}</h1>
-              <p className="page-sub">
-                Connected to {tenant.name}. Screen implementation lands in the A3–A6 phases.
-              </p>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-body muted">
-              Route: <code>{route}</code>. Features —{' '}
-              repricer: <b>{String(features.repricer)}</b>, reviews:{' '}
-              <b>{String(features.review_insight)}</b>, ai_act: <b>{String(features.ai_act)}</b>.
-            </div>
-          </div>
-        </div>
+        <PageRouter route={route} routeParams={routeParams} onNavigate={navigate} />
       </AppShell>
 
       <CommandPalette

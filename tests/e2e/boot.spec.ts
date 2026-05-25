@@ -6,7 +6,7 @@ test('admin shell boots and navigates', async ({ page }) => {
 
   // Sidebar brand + default route.
   await expect(page.getByText('price-intel')).toBeVisible();
-  await expect(page.getByTestId('app-page')).toBeVisible();
+  await expect(page.getByTestId('page-dashboard')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
   // Navigate via the sidebar.
