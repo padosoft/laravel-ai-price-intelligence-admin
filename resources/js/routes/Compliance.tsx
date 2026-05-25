@@ -88,7 +88,7 @@ export function Compliance() {
                 <span className="muted" style={{ fontSize: 10.5 }}>robots: <span className="mono" style={{ color: r.robots_allowed ? 'var(--status-success)' : 'var(--status-failed)' }}>{r.robots_allowed ? 'allow' : 'deny'}</span></span>
               </div>
             ))}
-            {(logs.data?.data?.length ?? 0) === 0 && <div className="card-body empty">No fetch activity in the window.</div>}
+            {(logs.data?.data?.length ?? 0) === 0 && <div className="empty">No fetch activity in the window.</div>}
           </div>
         </div>
       </div>

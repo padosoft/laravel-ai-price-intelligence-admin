@@ -6,6 +6,7 @@ import { createQueryClient } from '@/lib/api/queryClient';
 import { resetMockState } from '@/lib/api/mocks';
 import { ToastProvider } from '@/components/ds';
 import { AuthProvider } from '@/state/AuthProvider';
+import { AuthContext, type AuthState } from '@/state/auth-context';
 import { Repricer } from '@/routes/Repricer';
 import { Alerts } from '@/routes/Alerts';
 import { Webhooks } from '@/routes/Webhooks';
@@ -66,6 +67,26 @@ describe('ApiKeys', () => {
     await waitFor(() => expect(screen.getByText('MarginOS production')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /Generate key/ }));
     await waitFor(() => expect(screen.getByText(/New key — shown once/)).toBeInTheDocument());
+  });
+
+  it('denies access without the apikeys:manage ability', () => {
+    const denied: AuthState = {
+      isLoading: false,
+      isError: false,
+      me: null,
+      hasFeature: () => true,
+      hasAbility: (a: string) => a !== 'apikeys:manage',
+    };
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <AuthContext.Provider value={denied}>
+          <ToastProvider><ApiKeys /></ToastProvider>
+        </AuthContext.Provider>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText('Access denied')).toBeInTheDocument();
+    // The generate action must not be available.
+    expect(screen.queryByRole('button', { name: /Generate key/ })).not.toBeInTheDocument();
   });
 });
 
