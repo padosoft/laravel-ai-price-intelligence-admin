@@ -8,6 +8,7 @@ import type {
   AssortmentGap,
   CompetitorDetail,
   CompetitorListItem,
+  CompetitorProduct,
   ContentGap,
   CursorPage,
   FetchLog,
@@ -48,7 +49,10 @@ function useOptimisticCreate<TVars, TItem, TResult>(
       const snapshots = qc.getQueriesData<CursorPage<TItem>>({ queryKey: prefix }) as Array<[readonly unknown[], CursorPage<TItem> | undefined]>;
       const temp = buildTemp(vars);
       qc.setQueriesData<CursorPage<TItem>>({ queryKey: prefix }, (old) =>
-        old ? { ...old, data: [temp, ...old.data] } : old,
+        // Only touch cursor-page list caches; a sibling detail query (e.g. the
+        // `['competitor-products', id]` single-resource cache) shares the prefix but holds a
+        // non-array `data`, so guard against corrupting it.
+        old && Array.isArray(old.data) ? { ...old, data: [temp, ...old.data] } : old,
       );
       return { snapshots };
     },
@@ -166,6 +170,45 @@ export function useCompetitorDetail(id: number) {
     queryFn: () => api.get<Resource<CompetitorDetail>>(`/competitor-products/${id}`).then(unwrap),
     enabled: id > 0,
   });
+}
+
+/** Payload for manually attaching a competitor listing by URL (POST /competitor-products). */
+export interface AddCompetitorInput {
+  monitoring_target_id: number;
+  url: string;
+  external_ref?: string;
+}
+
+/**
+ * Competitor listing actions. `addByUrl` optimistically prepends the new (manual, confidence
+ * 100) listing to every cached competitor-products page and rolls back on error; `discover`
+ * queues background URL discovery for a target (no synchronous list change).
+ */
+export function useCompetitorActions() {
+  const addByUrl = useOptimisticCreate<AddCompetitorInput, CompetitorListItem, { data: CompetitorProduct }>(
+    ['competitor-products'],
+    (input) => api.post<{ data: CompetitorProduct }>('/competitor-products', input),
+    (input) => ({
+      id: nextTempId(),
+      monitoring_target_id: input.monitoring_target_id,
+      competitor_source_id: null,
+      url: input.url,
+      external_ref: input.external_ref ?? null,
+      match_status: 'confirmed',
+      match_confidence: 100,
+      match_method: 'manual',
+      last_seen_at: null,
+      target: null,
+      source: null,
+      latest_price: null,
+    }),
+  );
+
+  const discover = useMutation({
+    mutationFn: (targetId: number) => api.post<{ data: { queued: boolean } }>(`/targets/${targetId}/discover:now`),
+  });
+
+  return { addByUrl, discover };
 }
 
 // ---- Intelligence (A5) ----

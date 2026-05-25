@@ -94,6 +94,7 @@ let mockRules = RULES.map((r) => ({ ...r }));
 let mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
 let mockApiKeys = API_KEYS.map((k) => ({ ...k }));
 let mockTargets = TARGETS.map((t) => ({ ...t }));
+let mockCompetitors = COMPETITOR_LIST.map((c) => ({ ...c }));
 let mockTenantSettings: TenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
 let apiKeySeq = 90000;
 function nextApiKeyId(): number { return ++apiKeySeq; }
@@ -108,6 +109,7 @@ export function resetMockState(): void {
   mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
   mockApiKeys = API_KEYS.map((k) => ({ ...k }));
   mockTargets = TARGETS.map((t) => ({ ...t }));
+  mockCompetitors = COMPETITOR_LIST.map((c) => ({ ...c }));
   mockTenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
   apiKeySeq = 90000;
   resourceSeq = 800000;
@@ -184,10 +186,29 @@ const handlers: Record<string, Handler> = {
     const host = query?.host as string | undefined;
     const productId = query?.product_id != null ? Number(query.product_id) : undefined;
     return page(
-      COMPETITOR_LIST.filter(
+      mockCompetitors.filter(
         (c) => (host ? c.source?.host === host : true) && (productId != null ? c.target?.product_id === productId : true),
       ),
     );
+  },
+  'POST /competitor-products': (_query, body) => {
+    const b = (body ?? {}) as { monitoring_target_id?: number; url?: string; external_ref?: string };
+    const competitor = {
+      id: nextResourceId(),
+      monitoring_target_id: b.monitoring_target_id ?? 0,
+      competitor_source_id: null,
+      url: b.url ?? '',
+      external_ref: b.external_ref ?? null,
+      match_status: 'confirmed' as const,
+      match_confidence: 100,
+      match_method: 'manual',
+      last_seen_at: new Date().toISOString(),
+      source: null,
+      target: null,
+      latest_price: null,
+    };
+    mockCompetitors = [competitor, ...mockCompetitors];
+    return { data: competitor };
   },
 };
 
@@ -230,6 +251,10 @@ export async function mockFetch<T>(
   // Dynamic action paths.
   if (method === 'POST' && /^\/targets\/\d+\/scrape:now$/.test(path)) {
     return { data: { queued: 2 } } as T;
+  }
+  // Trigger competitor-URL discovery for a target (queued background job, 202 in the core).
+  if (method === 'POST' && /^\/targets\/\d+\/discover:now$/.test(path)) {
+    return { data: { queued: true } } as T;
   }
   const cpDetail = method === 'GET' && path.match(/^\/competitor-products\/(\d+)$/);
   if (cpDetail) {

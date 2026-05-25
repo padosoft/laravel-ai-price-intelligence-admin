@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient } from '@/lib/api/queryClient';
@@ -7,7 +7,7 @@ import { Matches } from '@/routes/Matches';
 import { Competitors } from '@/routes/Competitors';
 import { CompetitorDetail } from '@/routes/CompetitorDetail';
 import { Prices } from '@/routes/Prices';
-import { resetMatchMocks } from '@/lib/api/mocks';
+import { resetMatchMocks, resetMockState } from '@/lib/api/mocks';
 
 function wrap(ui: React.ReactElement) {
   return render(
@@ -55,6 +55,9 @@ describe('Matches', () => {
 });
 
 describe('Competitors', () => {
+  // Add-by-URL mutates the in-memory competitor list; reset so it can't leak across cases.
+  beforeEach(() => resetMockState());
+
   it('lists confirmed listings and filters by host', async () => {
     const user = userEvent.setup();
     wrap(<Competitors onNavigate={() => {}} />);
@@ -73,6 +76,38 @@ describe('Competitors', () => {
     const row = screen.getByText('https://amazon.it/dp/B0XYZ').closest('tr') as HTMLElement;
     await user.click(row);
     expect(onNavigate).toHaveBeenCalledWith('competitor_detail', { competitorId: 5001 });
+  });
+
+  it('adds a competitor by URL (POST /competitor-products)', async () => {
+    const user = userEvent.setup();
+    wrap(<Competitors onNavigate={() => {}} />);
+    await waitFor(() => expect(screen.getAllByText('amazon.it').length).toBeGreaterThan(0));
+    await user.click(screen.getByRole('button', { name: /Add by URL/ }));
+    const dialog = screen.getByRole('dialog');
+    const add = within(dialog).getByRole('button', { name: /Add competitor/ });
+    // Disabled until a target is chosen and the URL is a valid http(s) URL.
+    expect(add).toBeDisabled();
+    await user.selectOptions(within(dialog).getByLabelText('Monitoring target'), within(dialog).getByRole('option', { name: /#101/ }));
+    await user.type(within(dialog).getByLabelText('Listing URL'), 'https://euronics.it/p/999');
+    expect(add).toBeEnabled();
+    await user.click(add);
+    await waitFor(() => expect(screen.getByText('Competitor added')).toBeInTheDocument());
+    // The new listing appears in the table (the toast body also echoes the URL, so scope the query).
+    await waitFor(() => expect(within(screen.getByRole('table')).getByText('https://euronics.it/p/999')).toBeInTheDocument());
+  });
+
+  it('queues discovery for a target (POST /targets/{id}/discover:now)', async () => {
+    const user = userEvent.setup();
+    wrap(<Competitors onNavigate={() => {}} />);
+    await waitFor(() => expect(screen.getAllByText('amazon.it').length).toBeGreaterThan(0));
+    await user.click(screen.getByRole('button', { name: /Trigger discovery/ }));
+    const dialog = screen.getByRole('dialog');
+    const queue = within(dialog).getByRole('button', { name: /Queue discovery/ });
+    expect(queue).toBeDisabled();
+    await user.selectOptions(within(dialog).getByLabelText('Monitoring target'), within(dialog).getByRole('option', { name: /#103/ }));
+    expect(queue).toBeEnabled();
+    await user.click(queue);
+    await waitFor(() => expect(screen.getByText('Discovery queued')).toBeInTheDocument());
   });
 });
 

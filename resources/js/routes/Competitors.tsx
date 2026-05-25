@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { I } from '@/components/ds/icons';
 import { Price, PriceDelta, AiBadge, ConfidenceBadge, HostChip } from '@/components/ds/pricing';
+import { Modal, useToast } from '@/components/ds';
 import { ProductImg } from '@/components/screens/shared';
-import { useCompetitors } from '@/hooks/operate';
+import { useCompetitors, useCompetitorActions, useTargets } from '@/hooks/operate';
 import { fmtNum } from '@/lib/format';
 import type { CompetitorListItem } from '@/lib/api/types';
 import type { RouteKey } from '@/lib/types';
@@ -40,6 +41,38 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
   }, [all]);
   const hosts = useMemo(() => ['all', ...hostCounts.keys()], [hostCounts]);
 
+  const targetsQuery = useTargets('all');
+  const targets = targetsQuery.data?.data ?? [];
+  const { addByUrl, discover } = useCompetitorActions();
+  const toast = useToast();
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [targetId, setTargetId] = useState<number | ''>('');
+  const [url, setUrl] = useState('');
+  const [discoverTargetId, setDiscoverTargetId] = useState<number | ''>('');
+
+  const isHttpUrl = (v: string) => /^https?:\/\/\S+$/i.test(v.trim());
+
+  const submitAdd = () => {
+    if (targetId === '' || !isHttpUrl(url)) return;
+    addByUrl.mutate(
+      { monitoring_target_id: Number(targetId), url: url.trim() },
+      {
+        onSuccess: () => { toast.push({ title: 'Competitor added', body: url.trim() }); setAddOpen(false); setUrl(''); setTargetId(''); },
+        onError: () => toast.push({ title: 'Could not add competitor', kind: 'error' }),
+      },
+    );
+  };
+
+  const submitDiscover = () => {
+    if (discoverTargetId === '') return;
+    discover.mutate(Number(discoverTargetId), {
+      onSuccess: () => { toast.push({ title: 'Discovery queued', body: `target #${discoverTargetId}` }); setDiscoverOpen(false); setDiscoverTargetId(''); },
+      onError: () => toast.push({ title: 'Could not queue discovery', kind: 'error' }),
+    });
+  };
+
   return (
     <div className="page" data-testid="page-competitors">
       <div className="page-head">
@@ -48,14 +81,64 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
           <p className="page-sub">{fmtNum(all.length)} confirmed competitor listings across {hostCounts.size} hosts.</p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn">
+          <button type="button" className="btn" onClick={() => setAddOpen(true)}>
             <I.Plus size={13} /> Add by URL
           </button>
-          <button type="button" className="btn primary">
+          <button type="button" className="btn primary" onClick={() => setDiscoverOpen(true)}>
             <I.Refresh size={13} /> Trigger discovery
           </button>
         </div>
       </div>
+
+      <Modal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        title="Add competitor by URL"
+        sub="Manually attach a confirmed competitor listing (match confidence 100, method: manual) to a monitoring target."
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setAddOpen(false)}>Cancel</button>
+            <button type="button" className="btn primary" disabled={targetId === '' || !isHttpUrl(url) || addByUrl.isPending} onClick={submitAdd}>
+              {addByUrl.isPending ? 'Adding…' : 'Add competitor'}
+            </button>
+          </>
+        }
+      >
+        <div className="form-row">
+          <label htmlFor="ac-target">Monitoring target</label>
+          <select id="ac-target" className="select" value={targetId} onChange={(e) => setTargetId(e.target.value === '' ? '' : Number(e.target.value))}>
+            <option value="">Select a target…</option>
+            {targets.map((t) => <option key={t.id} value={t.id}>#{t.id} · Product #{t.product_id} · {t.country}</option>)}
+          </select>
+        </div>
+        <div className="form-row">
+          <label htmlFor="ac-url">Listing URL</label>
+          <input id="ac-url" className="input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://competitor.example/p/123" />
+        </div>
+      </Modal>
+
+      <Modal
+        open={discoverOpen}
+        onClose={() => setDiscoverOpen(false)}
+        title="Trigger discovery"
+        sub="Queue a background job that searches the configured marketplaces/search providers for new competitor URLs for the chosen target."
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setDiscoverOpen(false)}>Cancel</button>
+            <button type="button" className="btn primary" disabled={discoverTargetId === '' || discover.isPending} onClick={submitDiscover}>
+              {discover.isPending ? 'Queuing…' : 'Queue discovery'}
+            </button>
+          </>
+        }
+      >
+        <div className="form-row">
+          <label htmlFor="dc-target">Monitoring target</label>
+          <select id="dc-target" className="select" value={discoverTargetId} onChange={(e) => setDiscoverTargetId(e.target.value === '' ? '' : Number(e.target.value))}>
+            <option value="">Select a target…</option>
+            {targets.map((t) => <option key={t.id} value={t.id}>#{t.id} · Product #{t.product_id} · {t.country}</option>)}
+          </select>
+        </div>
+      </Modal>
 
       <div className="filter-bar">
         {hosts.map((h) => (
