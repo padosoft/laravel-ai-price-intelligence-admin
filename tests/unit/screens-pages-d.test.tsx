@@ -106,4 +106,36 @@ describe('Settings', () => {
     await user.click(screen.getByRole('button', { name: /AI providers/ }));
     await waitFor(() => expect(screen.getByText(/feature flags/i)).toBeInTheDocument());
   });
+
+  it('edits the alert email and saves it via PATCH /tenants/me/settings', async () => {
+    const user = userEvent.setup();
+    wrap(<Settings />);
+    // Wait for the seeded settings to hydrate the editable field.
+    const email = await screen.findByLabelText('Alert email');
+    await waitFor(() => expect(email).toHaveValue('pricing-ops@acme.it'));
+    // Save is disabled until the form is dirty.
+    const save = screen.getByRole('button', { name: /Save changes/ });
+    expect(save).toBeDisabled();
+    await user.clear(email);
+    await user.type(email, 'new-ops@acme.it');
+    expect(save).toBeEnabled();
+    await user.click(save);
+    await waitFor(() => expect(screen.getByText('Settings saved')).toBeInTheDocument());
+    // The optimistic + refetched identity keeps the new value; Save goes disabled again.
+    await waitFor(() => expect(save).toBeDisabled());
+    expect(email).toHaveValue('new-ops@acme.it');
+  });
+
+  it('toggles a notification channel and persists it', async () => {
+    const user = userEvent.setup();
+    wrap(<Settings />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Notification channels/ }));
+    const slack = await screen.findByLabelText('Slack');
+    expect(slack).not.toBeChecked();
+    await user.click(slack);
+    await user.click(screen.getByRole('button', { name: /Save changes/ }));
+    await waitFor(() => expect(screen.getByText('Settings saved')).toBeInTheDocument());
+    await waitFor(() => expect(slack).toBeChecked());
+  });
 });

@@ -45,6 +45,14 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
 - [ ] **B8** — release hygiene: admin **CHANGELOG.md**, deploy + user/admin guides, consolidate
   B-phase lessons into AGENTS.md/.claude/rules; tag admin **v1.1.0** + release.
 
+### B5 wiring progress (live)
+- [x] **Settings write** — General (alert email + table density) + Notification channels editable
+  forms → `PATCH /tenants/me/settings` via `useUpdateSettings` (optimistic merge of `['tenants','me']`
+  + rollback + settle-invalidate). Mock: mutable `mockTenantSettings`, `me().tenant.settings` exposed.
+  +2 vitest. (57 vitest green, build OK.)
+- [ ] New target · Add-by-URL · Trigger discovery · New SKU · Import CSV · New rule · New webhook ·
+  Exports (CSV/PDF/digest) · Compliance attestation.
+
 ### Next action (B5) — resume analysis (done before any code)
 The api client (`resources/js/lib/api/client.ts`) ALREADY has `api.post/patch/delete` + XSRF/bearer
 handling — **but there are no `useMutation` hooks and no wired forms yet**; action screens are

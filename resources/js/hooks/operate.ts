@@ -23,6 +23,8 @@ import type {
   RuleDecision,
   SimulateResult,
   TargetStatus,
+  TenantMe,
+  TenantSettings,
   WebhookSubscription,
 } from '@/lib/api/types';
 
@@ -298,4 +300,34 @@ export function useTargetActions() {
   });
 
   return { scrapeNow, setStatus };
+}
+
+/**
+ * Write a partial tenant-settings patch (PATCH /tenants/me/settings). Optimistically merges
+ * the patch into the cached `['tenants','me']` identity so the form reflects the change
+ * immediately, rolls back on error, and re-syncs from the server on settle.
+ */
+export function useUpdateSettings() {
+  const qc = useQueryClient();
+  const key = ['tenants', 'me'] as const;
+
+  return useMutation({
+    mutationFn: (settings: TenantSettings) =>
+      api.patch<{ data: { settings: TenantSettings } }>('/tenants/me/settings', { settings }).then(unwrap),
+    onMutate: async (settings: TenantSettings) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<TenantMe>(key);
+      if (previous) {
+        qc.setQueryData<TenantMe>(key, {
+          ...previous,
+          tenant: { ...previous.tenant, settings: { ...previous.tenant.settings, ...settings } },
+        });
+      }
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
 }

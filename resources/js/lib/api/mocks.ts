@@ -1,5 +1,5 @@
 import { ApiError } from './errors';
-import type { CursorPage, DashboardStats, TenantMe } from './types';
+import type { CursorPage, DashboardStats, TenantMe, TenantSettings } from './types';
 import {
   ALERTS,
   ANOMALIES,
@@ -41,8 +41,14 @@ export function page<T>(items: T[]): CursorPage<T> {
   return { ...emptyPage<T>(), data: items, per_page: items.length || 50 };
 }
 
+const TENANT_SETTINGS_SEED: TenantSettings = {
+  alert_email: 'pricing-ops@acme.it',
+  density: 'comfortable',
+  channels: { webhook: true, mail: true, slack: false, teams: false },
+};
+
 const TENANT_ME: TenantMe = {
-  tenant: { id: 'acme-it', code: 'ACME', name: 'Acme Italia' },
+  tenant: { id: 'acme-it', code: 'ACME', name: 'Acme Italia', settings: { ...TENANT_SETTINGS_SEED } },
   features: {
     review_insight: true,
     repricer: true,
@@ -87,6 +93,7 @@ let mockAlerts = ALERTS.map((a) => ({ ...a }));
 let mockRules = RULES.map((r) => ({ ...r }));
 let mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
 let mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+let mockTenantSettings: TenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
 let apiKeySeq = 90000;
 function nextApiKeyId(): number { return ++apiKeySeq; }
 
@@ -96,12 +103,21 @@ export function resetMockState(): void {
   mockRules = RULES.map((r) => ({ ...r }));
   mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
   mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+  mockTenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
   apiKeySeq = 90000;
 }
 
 /** Registry keyed by "METHOD /path" (exact) or "METHOD /prefix/*" patterns. */
 const handlers: Record<string, Handler> = {
-  'GET /tenants/me': () => ({ data: TENANT_ME }),
+  'GET /tenants/me': () => ({
+    data: { ...TENANT_ME, tenant: { ...TENANT_ME.tenant, settings: mockTenantSettings } },
+  }),
+  'PATCH /tenants/me/settings': (_query, body) => {
+    const patch = ((body as { settings?: TenantSettings } | undefined)?.settings) ?? {};
+    // Mirror the core: shallow-merge the patch into the stored settings.
+    mockTenantSettings = { ...mockTenantSettings, ...patch };
+    return { data: { settings: mockTenantSettings } };
+  },
   'GET /stats': () => ({ data: STATS }),
   'GET /catalog/products': () => page(PRODUCTS),
   'GET /targets': (query) => {
