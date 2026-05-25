@@ -190,6 +190,10 @@ export async function mockFetch<T>(
       },
     } as T;
   }
+  if (method === 'POST' && path === '/api-keys') {
+    const b = (body ?? {}) as { name?: string; scopes?: string[] };
+    return { data: { id: Math.floor(Math.random() * 100000), name: b.name ?? 'New key', scopes: b.scopes ?? [], plaintext: `piprice_${Math.random().toString(36).slice(2, 14)}${Math.random().toString(36).slice(2, 14)}` } } as T;
+  }
   if (method === 'POST' && /^\/matches\/\d+\/(approve|reject)$/.test(path)) {
     const id = Number(path.split('/')[2]);
     processedMatchIds.add(id);
