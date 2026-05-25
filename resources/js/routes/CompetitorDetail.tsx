@@ -5,6 +5,7 @@ import { ProductImg } from '@/components/screens/shared';
 import { PriceLineChart, type PriceSeries } from '@/components/charts';
 import { useToast } from '@/components/ds';
 import { useAnomalies, useCompetitorDetail, useCompetitorPrices, useFetchLogs, useTargetActions } from '@/hooks/operate';
+import { safeHttpUrl } from '@/lib/url';
 import type { PriceObservation } from '@/lib/api/types';
 import type { RouteKey } from '@/lib/types';
 
@@ -66,6 +67,7 @@ export function CompetitorDetail({
   const price = data.latest_price?.price_cents ?? null;
   const pct = our != null && our !== 0 && price != null ? ((price - our) / our) * 100 : null;
   const host = cp.source?.host ?? '—';
+  const listingHref = safeHttpUrl(cp.url);
 
   return (
     <div className="page" data-testid="page-competitor-detail">
@@ -85,7 +87,11 @@ export function CompetitorDetail({
               </div>
               <h1 className="page-title" style={{ marginBottom: 4 }}>{product?.name ?? cp.url}</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--text-secondary)', fontSize: 12 }}>
-                <a href={cp.url} className="id-link mono" target="_blank" rel="noreferrer noopener">{cp.url}</a>
+                {listingHref ? (
+                  <a href={listingHref} className="id-link mono" target="_blank" rel="noreferrer noopener">{cp.url}</a>
+                ) : (
+                  <span className="mono tertiary">{cp.url}</span>
+                )}
                 {cp.external_ref && <span className="mono tertiary">ext: {cp.external_ref}</span>}
                 {cp.match_method && <span className="muted">matched via <span className="mono">{cp.match_method}</span></span>}
               </div>
@@ -106,9 +112,15 @@ export function CompetitorDetail({
           >
             <I.Refresh size={13} /> Scrape now
           </button>
-          <a className="btn" href={cp.url} target="_blank" rel="noreferrer noopener">
-            <I.External size={13} /> Open listing
-          </a>
+          {listingHref ? (
+            <a className="btn" href={listingHref} target="_blank" rel="noreferrer noopener">
+              <I.External size={13} /> Open listing
+            </a>
+          ) : (
+            <button type="button" className="btn" disabled title="No openable URL">
+              <I.External size={13} /> Open listing
+            </button>
+          )}
         </div>
       </div>
 

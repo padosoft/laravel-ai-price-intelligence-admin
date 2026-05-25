@@ -46,7 +46,9 @@ export function useAnomalies(limit?: number) {
 
 export function usePriceSeries(host: string, productId?: number | null, range?: string) {
   return useQuery({
-    queryKey: ['observations', 'prices', host, productId ?? null, range ?? '30d'],
+    // Key by the values actually sent (range omitted from the request → null in the key)
+    // so the cache entry matches the response, with no phantom default.
+    queryKey: ['observations', 'prices', host, productId ?? null, range ?? null],
     queryFn: () =>
       api.get<CursorPage<PriceObservation>>('/observations/prices', {
         host,

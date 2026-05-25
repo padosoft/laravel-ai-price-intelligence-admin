@@ -5,6 +5,7 @@ import { Price, PriceDelta, AiBadge, ConfidenceBadge, HostChip } from '@/compone
 import { ProductImg } from '@/components/screens/shared';
 import { useToast } from '@/components/ds';
 import { useMatches, useMatchActions } from '@/hooks/operate';
+import { safeHttpUrl } from '@/lib/url';
 import type { MatchEvidence, MatchProposal } from '@/lib/api/types';
 
 type Decision = 'approve' | 'reject';
@@ -16,7 +17,7 @@ function evidenceStatus(e: MatchEvidence): 'match' | 'nomatch' | 'skip' {
 }
 
 export function Matches() {
-  const { data } = useMatches('pending');
+  const { data, isLoading } = useMatches('pending');
   const { approve, reject } = useMatchActions();
   const toast = useToast();
 
@@ -41,7 +42,10 @@ export function Matches() {
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => { timers.current.forEach(clearTimeout); }, []);
   const schedule = useCallback((fn: () => void, ms: number) => {
-    const t = setTimeout(fn, ms);
+    const t = setTimeout(() => {
+      timers.current = timers.current.filter((x) => x !== t);
+      fn();
+    }, ms);
     timers.current.push(t);
   }, []);
 
@@ -154,6 +158,16 @@ export function Matches() {
   const total = localQueue.length + history.length;
   const processedCount = history.length;
 
+  // Distinguish "still loading the queue" from "queue genuinely empty": before the first
+  // fetch resolves localQueue is [] but seeded is false, so don't flash "Queue cleared".
+  if (!current && (isLoading || !seeded.current)) {
+    return (
+      <div className="page" data-testid="page-matches">
+        <div className="card"><div className="card-body empty">Loading review queue…</div></div>
+      </div>
+    );
+  }
+
   if (!current) {
     return (
       <div className="page" data-testid="page-matches">
@@ -173,6 +187,7 @@ export function Matches() {
     );
   }
 
+  const candHref = safeHttpUrl(current.candidate_url);
   const product = current.target?.product ?? null;
   const our = product?.our_price_cents ?? null;
   const cand = current.candidate_price_cents;
@@ -271,7 +286,13 @@ export function Matches() {
                 <h3 className="product-hero-title">{current.candidate_title ?? '—'}</h3>
                 <dl>
                   <dt>URL</dt>
-                  <dd><a href={current.candidate_url} className="id-link" target="_blank" rel="noreferrer noopener" style={{ wordBreak: 'break-all', fontSize: 11 }}>{current.candidate_url}</a></dd>
+                  <dd>
+                    {candHref ? (
+                      <a href={candHref} className="id-link" target="_blank" rel="noreferrer noopener" style={{ wordBreak: 'break-all', fontSize: 11 }}>{current.candidate_url}</a>
+                    ) : (
+                      <span className="mono tertiary" style={{ wordBreak: 'break-all', fontSize: 11 }}>{current.candidate_url}</span>
+                    )}
+                  </dd>
                   <dt>Source</dt><dd>{current.candidate_host ?? '—'}</dd>
                   <dt>Method</dt><dd>AI cascade</dd>
                 </dl>
@@ -290,9 +311,15 @@ export function Matches() {
               <button type="button" className="btn danger" onClick={() => decide('reject')}>
                 <I.X size={13} /> Reject <Kbd>R</Kbd>
               </button>
-              <a className="btn" href={current.candidate_url} target="_blank" rel="noreferrer noopener">
-                <I.External size={13} /> Open
-              </a>
+              {candHref ? (
+                <a className="btn" href={candHref} target="_blank" rel="noreferrer noopener">
+                  <I.External size={13} /> Open
+                </a>
+              ) : (
+                <button type="button" className="btn" disabled title="No openable URL">
+                  <I.External size={13} /> Open
+                </button>
+              )}
               <button type="button" className="btn primary" onClick={() => decide('approve')}>
                 <I.Check size={13} /> Confirm <Kbd>A</Kbd>
               </button>
