@@ -30,6 +30,7 @@ function readThemes(raw: Array<Record<string, unknown>> | null): Theme[] {
 
 export function Reviews() {
   const { data, isLoading } = useReviews();
+  const moduleDisabled = data?.meta?.enabled === false;
   const insights = useMemo(() => data?.data ?? [], [data]);
   const primary = insights[0] ?? null;
   const themes = readThemes(primary?.themes ?? null);
@@ -58,7 +59,12 @@ export function Reviews() {
         </div>
       </div>
 
-      {primary ? (
+      {moduleDisabled ? (
+        <div className="card"><div className="card-body empty">
+          Review insight is disabled for this tenant. Enable it (and opt in per-domain) in the core
+          config to start ingesting GDPR-safe aggregated sentiment.
+        </div></div>
+      ) : primary ? (
         <div className="grid-3">
           <div className="card">
             <div className="card-head"><h3 className="card-title">Sentiment · CP #{primary.competitor_product_id}</h3></div>

@@ -16,7 +16,7 @@ import type {
   PriceObservation,
   Product,
   Resource,
-  ReviewInsight,
+  ReviewsPage,
   TargetStatus,
 } from '@/lib/api/types';
 
@@ -159,11 +159,12 @@ export function useContentGaps() {
   });
 }
 
-/** GDPR-safe aggregated review sentiment (feature-gated by review_insight). */
+/** GDPR-safe aggregated review sentiment (feature-gated by review_insight). The response
+ * carries `meta.enabled` so the screen can distinguish "module off" from "no data". */
 export function useReviews(period?: string) {
   return useQuery({
     queryKey: ['reviews', period ?? 'all'],
-    queryFn: () => api.get<CursorPage<ReviewInsight>>('/reviews', period ? { period } : undefined),
+    queryFn: () => api.get<ReviewsPage>('/reviews', period ? { period } : undefined),
   });
 }
 

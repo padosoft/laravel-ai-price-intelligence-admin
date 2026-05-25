@@ -208,6 +208,12 @@ export interface ReviewInsight {
   generated_at: string;
 }
 
+/** `GET /reviews` envelope: a cursor page plus the core's `meta.enabled` flag, which is
+ * `false` when the review-insight module is disabled for the tenant (vs. simply empty). */
+export interface ReviewsPage extends CursorPage<ReviewInsight> {
+  meta?: { enabled: boolean };
+}
+
 export interface Narrative {
   id: number;
   period: string;
