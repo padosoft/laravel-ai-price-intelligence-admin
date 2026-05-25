@@ -38,7 +38,7 @@ export function useAlertStream(enabled = true): AlertStreamState {
         // Ignore malformed frames (e.g. keep-alive comments).
       }
     };
-    return () => es.close();
+    return () => { es.close(); setConnected(false); };
   }, [enabled, supported, qc]);
 
   return { connected, supported };

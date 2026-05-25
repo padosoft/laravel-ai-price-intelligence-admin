@@ -33,15 +33,18 @@ export function Alerts() {
     <div className="page" data-testid="page-alerts">
       <div className="page-head">
         <div>
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            Alerts inbox
-            {stream.supported && (
-              <span className="live-pill" style={{ fontSize: 10 }} title={stream.connected ? 'Live stream connected' : 'Reconnecting…'}>
-                <span className={`pulse ${stream.connected ? '' : 'idle'}`} />
-                {stream.connected ? 'Live' : 'Reconnecting'}
-              </span>
-            )}
-          </h1>
+          <h1 className="page-title">Alerts inbox</h1>
+          {stream.supported && (
+            <span
+              className="live-pill"
+              style={{ fontSize: 10 }}
+              aria-live="polite"
+              title={stream.connected ? 'Live stream connected' : 'Reconnecting…'}
+            >
+              <span className={`pulse ${stream.connected ? '' : 'idle'}`} aria-hidden="true" />
+              {stream.connected ? 'Live' : 'Reconnecting'}
+            </span>
+          )}
           <p className="page-sub">
             Real-time stream from <span className="mono">/api/v1/alerts/stream</span> (SSE). Channels: webhook, mail, Slack, Teams.
           </p>
