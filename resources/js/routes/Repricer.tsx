@@ -29,8 +29,10 @@ export function Repricer() {
 
   const submitRule = () => {
     if (ruleName.trim() === '') return;
+    // Preserve an explicit priority of 0 (highest); only fall back to 100 when unparseable.
+    const parsedPriority = Number.parseInt(priority, 10);
     create.mutate(
-      { name: ruleName.trim(), strategy, priority: Number(priority) || 100 },
+      { name: ruleName.trim(), strategy, priority: Number.isNaN(parsedPriority) ? 100 : parsedPriority },
       {
         onSuccess: () => { toast.push({ title: 'Rule created', body: ruleName.trim() }); setOpen(false); setRuleName(''); setStrategy('undercut_pct'); setPriority('100'); },
         onError: () => toast.push({ title: 'Could not create rule', kind: 'error' }),

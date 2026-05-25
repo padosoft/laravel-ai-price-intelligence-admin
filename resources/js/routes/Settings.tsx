@@ -43,7 +43,7 @@ export function Settings() {
   useEffect(() => {
     setAlertEmail(settings.alert_email ?? '');
     setDensity(settings.density ?? 'comfortable');
-    setChannels({ ...settings.channels });
+    setChannels({ ...(settings.channels ?? {}) });
     // Re-seed on identity change only; `settings` is a fresh object each render so key on its JSON.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(settings)]);

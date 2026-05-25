@@ -31,15 +31,18 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
 
   const submitSku = () => {
     if (externalId.trim() === '' || name.trim() === '') return;
-    const cents = priceEuros.trim() === '' ? undefined : Math.round(Number(priceEuros) * 100);
+    const rawCents = priceEuros.trim() === '' ? undefined : Math.round(Number(priceEuros) * 100);
+    // Only send a price (and its currency) when it parses to a finite number; an unparseable
+    // entry leaves both undefined so we never attach a currency without a price.
+    const priceCents = Number.isFinite(rawCents) ? rawCents : undefined;
     createSku.mutate(
       {
         external_id: externalId.trim(),
         name: name.trim(),
         sku: sku.trim() || undefined,
         brand: brandInput.trim() || undefined,
-        our_price_cents: Number.isFinite(cents) ? cents : undefined,
-        currency: cents != null ? 'EUR' : undefined,
+        our_price_cents: priceCents,
+        currency: priceCents != null ? 'EUR' : undefined,
       },
       {
         onSuccess: () => { toast.push({ title: 'SKU created', body: name.trim() }); setOpen(false); resetForm(); },

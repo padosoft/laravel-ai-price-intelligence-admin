@@ -41,20 +41,27 @@ function useOptimisticCreate<TVars, TItem, TResult>(
   prefix: readonly unknown[],
   mutationFn: (vars: TVars) => Promise<TResult>,
   buildTemp: (vars: TVars) => TItem,
+  // Optional per-cache guard: return false to skip prepending the temp row into a given list
+  // cache whose filter wouldn't actually contain the new item (e.g. a paused-only target list
+  // must not flash a newly created active target). Defaults to "applies everywhere".
+  appliesTo?: (queryKey: readonly unknown[], vars: TVars) => boolean,
 ) {
   const qc = useQueryClient();
   return useMutation<TResult, unknown, TVars, { snapshots: Array<[readonly unknown[], CursorPage<TItem> | undefined]> }>({
     mutationFn,
     onMutate: async (vars) => {
       await qc.cancelQueries({ queryKey: prefix });
-      const snapshots = qc.getQueriesData<CursorPage<TItem>>({ queryKey: prefix }) as Array<[readonly unknown[], CursorPage<TItem> | undefined]>;
+      const entries = qc.getQueriesData<CursorPage<TItem>>({ queryKey: prefix });
+      const snapshots = entries as Array<[readonly unknown[], CursorPage<TItem> | undefined]>;
       const temp = buildTemp(vars);
-      qc.setQueriesData<CursorPage<TItem>>({ queryKey: prefix }, (old) =>
+      for (const [key, old] of entries) {
         // Only touch cursor-page list caches; a sibling detail query (e.g. the
         // `['competitor-products', id]` single-resource cache) shares the prefix but holds a
         // non-array `data`, so guard against corrupting it.
-        old && Array.isArray(old.data) ? { ...old, data: [temp, ...old.data] } : old,
-      );
+        if (!old || !Array.isArray(old.data)) continue;
+        if (appliesTo && !appliesTo(key, vars)) continue;
+        qc.setQueryData<CursorPage<TItem>>(key, { ...old, data: [temp, ...old.data] });
+      }
       return { snapshots };
     },
     onError: (_e, _v, ctx) => {
@@ -278,6 +285,12 @@ export function useCompetitorActions() {
       source: null,
       latest_price: null,
     }),
+    // The temp listing has no resolved host/product yet, so only show it in the unfiltered
+    // ("all" host, no product) list — never in a host- or product-filtered view.
+    (key) => {
+      const params = key[1] as { host?: string; productId?: number | null } | undefined;
+      return params?.host === 'all' && (params?.productId ?? null) === null;
+    },
   );
 
   const discover = useMutation({
@@ -533,6 +546,8 @@ export function useTargetActions() {
       last_check_at: null,
       next_check_at: null,
     }),
+    // New targets are created active → only show optimistically in the "all" and "active" lists.
+    (key) => { const status = key[1]; return status === 'all' || status === 'active'; },
   );
 
   return { scrapeNow, setStatus, create };
@@ -556,7 +571,7 @@ export function useUpdateSettings() {
       if (previous) {
         qc.setQueryData<TenantMe>(key, {
           ...previous,
-          tenant: { ...previous.tenant, settings: { ...previous.tenant.settings, ...settings } },
+          tenant: { ...previous.tenant, settings: { ...(previous.tenant.settings ?? {}), ...settings } },
         });
       }
       return { previous };
