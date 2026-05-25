@@ -74,6 +74,22 @@ describe('Webhooks', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Webhook subscriptions' })).toBeInTheDocument());
     await waitFor(() => expect(screen.getByText('https://marginos.acme.it/webhooks/price-intel')).toBeInTheDocument());
   });
+
+  it('creates a subscription via the modal (POST /webhook-subscriptions)', async () => {
+    const user = userEvent.setup();
+    wrap(<Webhooks />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Webhook subscriptions' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /New subscription/ }));
+    const dialog = screen.getByRole('dialog');
+    const create = within(dialog).getByRole('button', { name: /Create subscription/ });
+    // Disabled until an https URL is entered (http is rejected).
+    expect(create).toBeDisabled();
+    await user.type(within(dialog).getByLabelText(/Endpoint URL/), 'https://hooks.acme.it/pi');
+    expect(create).toBeEnabled();
+    await user.click(create);
+    await waitFor(() => expect(screen.getByText('Subscription created')).toBeInTheDocument());
+    await waitFor(() => expect(within(screen.getByRole('table')).getByText('https://hooks.acme.it/pi')).toBeInTheDocument());
+  });
 });
 
 describe('ApiKeys', () => {

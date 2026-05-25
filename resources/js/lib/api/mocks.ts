@@ -209,6 +209,19 @@ const handlers: Record<string, Handler> = {
   },
   'GET /rule-decisions': () => page(RULE_DECISIONS),
   'GET /webhook-subscriptions': () => page(mockWebhooks),
+  'POST /webhook-subscriptions': (_query, body) => {
+    const b = (body ?? {}) as { url?: string; events?: string[] };
+    const sub = {
+      id: nextResourceId(),
+      url: b.url ?? '',
+      events: b.events && b.events.length > 0 ? b.events : ['*'],
+      active: true,
+      last_status: null,
+      last_at: null,
+    };
+    mockWebhooks = [sub, ...mockWebhooks];
+    return { data: sub };
+  },
   'GET /api-keys': () => page(mockApiKeys),
   'GET /forecasts': () => page(FORECASTS),
   'GET /narratives': (query) => {

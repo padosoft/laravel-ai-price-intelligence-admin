@@ -381,6 +381,13 @@ export function useWebhooks() {
   });
 }
 
+/** Payload for creating a webhook subscription (POST /webhook-subscriptions). */
+export interface NewWebhookInput {
+  url: string;
+  events?: string[];
+  secret?: string;
+}
+
 export function useWebhookActions() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ['webhook-subscriptions'] });
@@ -391,7 +398,19 @@ export function useWebhookActions() {
     mutationFn: (id: number) => api.delete(`/webhook-subscriptions/${id}`),
     onSuccess: invalidate,
   });
-  return { test, remove };
+  const create = useOptimisticCreate<NewWebhookInput, WebhookSubscription, { data: WebhookSubscription }>(
+    ['webhook-subscriptions'],
+    (input) => api.post<{ data: WebhookSubscription }>('/webhook-subscriptions', input),
+    (input) => ({
+      id: nextTempId(),
+      url: input.url,
+      events: input.events && input.events.length > 0 ? input.events : ['*'],
+      active: true,
+      last_status: null,
+      last_at: null,
+    }),
+  );
+  return { test, remove, create };
 }
 
 /** API keys (admin-scoped: apikeys:manage). Pass `enabled=false` when the caller lacks the

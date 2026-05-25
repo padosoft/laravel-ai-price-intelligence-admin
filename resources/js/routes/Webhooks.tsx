@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { I } from '@/components/ds/icons';
 import { Tag } from '@/components/ds/pricing';
-import { useToast } from '@/components/ds';
+import { Modal, useToast } from '@/components/ds';
 import { useWebhooks, useWebhookActions } from '@/hooks/operate';
 
 const PAYLOAD_SAMPLE = `POST /webhooks/price-intel HTTP/1.1
@@ -20,8 +20,27 @@ Content-Type: application/json
 export function Webhooks() {
   const { data, isLoading } = useWebhooks();
   const rows = useMemo(() => data?.data ?? [], [data]);
-  const { test, remove } = useWebhookActions();
+  const { test, remove, create } = useWebhookActions();
   const toast = useToast();
+
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState('');
+  const [events, setEvents] = useState('');
+  const [secret, setSecret] = useState('');
+
+  const isHttpsUrl = (v: string) => /^https:\/\/\S+$/i.test(v.trim());
+
+  const submit = () => {
+    if (!isHttpsUrl(url)) return;
+    const eventList = events.split(',').map((e) => e.trim()).filter(Boolean);
+    create.mutate(
+      { url: url.trim(), events: eventList, secret: secret.trim() || undefined },
+      {
+        onSuccess: () => { toast.push({ title: 'Subscription created', body: url.trim() }); setOpen(false); setUrl(''); setEvents(''); setSecret(''); },
+        onError: () => toast.push({ title: 'Could not create subscription', kind: 'error' }),
+      },
+    );
+  };
 
   return (
     <div className="page" data-testid="page-webhooks">
@@ -33,9 +52,37 @@ export function Webhooks() {
           </p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn primary"><I.Plus size={13} /> New subscription</button>
+          <button type="button" className="btn primary" onClick={() => setOpen(true)}><I.Plus size={13} /> New subscription</button>
         </div>
       </div>
+
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="New webhook subscription"
+        sub="Events are signed with HMAC-SHA256 (X-PI-Signature). Leave events blank to receive all (*)."
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setOpen(false)}>Cancel</button>
+            <button type="button" className="btn primary" disabled={!isHttpsUrl(url) || create.isPending} onClick={submit}>
+              {create.isPending ? 'Creating…' : 'Create subscription'}
+            </button>
+          </>
+        }
+      >
+        <div className="form-row">
+          <label htmlFor="wh-url">Endpoint URL (https)</label>
+          <input id="wh-url" className="input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://marginos.acme.it/webhooks/price-intel" />
+        </div>
+        <div className="form-row">
+          <label htmlFor="wh-events">Events (comma-separated)</label>
+          <input id="wh-events" className="input" value={events} onChange={(e) => setEvents(e.target.value)} placeholder="undercut.detected, repricing.suggested" />
+        </div>
+        <div className="form-row">
+          <label htmlFor="wh-secret">Signing secret</label>
+          <input id="wh-secret" className="input" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="optional — used for X-PI-Signature" />
+        </div>
+      </Modal>
 
       <div className="card">
         <div className="card-body flush">
