@@ -2,6 +2,7 @@ import { ApiError } from './errors';
 import { toCsv } from '../csv';
 import type { CursorPage, DashboardStats, RepricingRule, TenantMe, TenantSettings } from './types';
 import {
+  AI_DECISIONS,
   ALERTS,
   ANOMALIES,
   API_KEYS,
@@ -245,6 +246,22 @@ const handlers: Record<string, Handler> = {
     const period = query?.period as string | undefined;
     const data = period ? REVIEWS.filter((r) => r.period === period) : REVIEWS;
     return { ...page(data), meta: { enabled: true } };
+  },
+  'GET /facets/hosts': () => {
+    // Exact per-host counts over the full (mutable) competitor list — mirrors the core's SQL facet.
+    const counts = new Map<string, number>();
+    for (const c of mockCompetitors) {
+      const h = c.source?.host;
+      if (h) counts.set(h, (counts.get(h) ?? 0) + 1);
+    }
+    const data = [...counts.entries()]
+      .map(([host, count]) => ({ host, count }))
+      .sort((a, b) => b.count - a.count);
+    return { data };
+  },
+  'GET /ai-decisions': (query) => {
+    const feature = query?.feature as string | undefined;
+    return page(feature ? AI_DECISIONS.filter((d) => d.feature === feature) : AI_DECISIONS);
   },
   'GET /competitor-products': (query) => {
     const host = query?.host as string | undefined;

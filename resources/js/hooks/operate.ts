@@ -5,11 +5,13 @@ import type {
   Anomaly,
   ApiKey,
   ApiKeyCreated,
+  AiDecision,
   AssortmentGap,
   CompetitorDetail,
   CompetitorListItem,
   CompetitorProduct,
   ContentGap,
+  HostFacet,
   CursorPage,
   FetchLog,
   Forecast,
@@ -255,6 +257,16 @@ export function useCompetitorDetail(id: number) {
   });
 }
 
+/** Exact per-host competitor counts computed in SQL (host chips on Competitors; scales past
+ * page 1 on 500k-SKU catalogs, unlike counting a single loaded page). */
+export function useHostFacets() {
+  return useQuery({
+    queryKey: ['facets', 'hosts'],
+    queryFn: () => api.get<{ data: HostFacet[] }>('/facets/hosts').then(unwrap),
+    staleTime: 60_000,
+  });
+}
+
 /** Payload for manually attaching a competitor listing by URL (POST /competitor-products). */
 export interface AddCompetitorInput {
   monitoring_target_id: number;
@@ -358,6 +370,19 @@ export function useReviews(period?: string) {
   return useQuery({
     queryKey: ['reviews', period ?? 'all'],
     queryFn: () => api.get<ReviewsPage>('/reviews', period ? { period } : undefined),
+  });
+}
+
+/** EU AI Act decision log (Compliance screen), cursor-paginated, newest first. Optionally
+ * filtered by feature. */
+export function useAiDecisions(feature?: string, limit?: number) {
+  return useQuery({
+    queryKey: ['ai-decisions', { feature: feature ?? 'all', limit }],
+    queryFn: () =>
+      api.get<CursorPage<AiDecision>>('/ai-decisions', {
+        ...(feature ? { feature } : {}),
+        ...(limit ? { per_page: limit } : {}),
+      }),
   });
 }
 

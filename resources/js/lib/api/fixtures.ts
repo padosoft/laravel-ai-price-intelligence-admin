@@ -1,6 +1,7 @@
 // Dev/test fixtures shaped to the core v1.1 API types. Used by the mock layer only
 // (useMocks) so screens render without a live backend. Not shipped behavior.
 import type {
+  AiDecision,
   Alert,
   Anomaly,
   ApiKey,
@@ -224,4 +225,12 @@ export const API_KEYS: ApiKey[] = [
   { id: 8301, name: 'MarginOS production', scopes: ['catalog:read', 'observations:read', 'alerts:read'], last_used_at: '2026-05-24T11:30:00Z', expires_at: null, revoked_at: null, created_at: '2026-01-12T09:00:00Z' },
   { id: 8302, name: 'Analytics read-only', scopes: ['observations:read', 'forecasts:read'], last_used_at: '2026-05-20T08:00:00Z', expires_at: '2026-08-01T00:00:00Z', revoked_at: null, created_at: '2026-03-01T09:00:00Z' },
   { id: 8303, name: 'Legacy import (rotate)', scopes: ['catalog:write'], last_used_at: '2026-04-02T08:00:00Z', expires_at: null, revoked_at: '2026-05-01T00:00:00Z', created_at: '2025-11-01T09:00:00Z' },
+];
+
+export const AI_DECISIONS: AiDecision[] = [
+  { id: 9101, subject_type: 'competitor_product', subject_id: 5003, feature: 'visual_match', model: 'gpt-4o-mini', model_version: '2026-04', confidence: 78, cost_micros: 1200, human_reviewed: true, output: { matched: true, reason: 'same product, different angle' }, created_at: '2026-05-25T17:50:00Z' },
+  { id: 9102, subject_type: 'product', subject_id: 3, feature: 'content_gap', model: 'gpt-4o', model_version: '2026-04', confidence: 91, cost_micros: 4300, human_reviewed: false, output: { missing: ['HDR10+', 'panel_type'] }, created_at: '2026-05-25T16:20:00Z' },
+  { id: 9103, subject_type: 'competitor_product', subject_id: 5005, feature: 'anomaly', model: 'statistical-v1', model_version: '1.0', confidence: 64, cost_micros: 0, human_reviewed: false, output: { type: 'price_spike', z: 3.4 }, created_at: '2026-05-25T15:05:00Z' },
+  { id: 9104, subject_type: null, subject_id: null, feature: 'narrative', model: 'gpt-4o', model_version: '2026-04', confidence: null, cost_micros: 8800, human_reviewed: false, output: { period: '2026-W21' }, created_at: '2026-05-25T07:00:00Z' },
+  { id: 9105, subject_type: 'competitor_product', subject_id: 5001, feature: 'visual_match', model: 'gpt-4o-mini', model_version: '2026-04', confidence: 96, cost_micros: 1100, human_reviewed: false, output: { matched: true }, created_at: '2026-05-24T18:10:00Z' },
 ];

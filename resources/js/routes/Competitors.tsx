@@ -3,7 +3,7 @@ import { I } from '@/components/ds/icons';
 import { Price, PriceDelta, AiBadge, ConfidenceBadge, HostChip } from '@/components/ds/pricing';
 import { Modal, useToast } from '@/components/ds';
 import { ProductImg } from '@/components/screens/shared';
-import { useCompetitors, useCompetitorActions, useTargets } from '@/hooks/operate';
+import { useCompetitors, useCompetitorActions, useHostFacets, useTargets } from '@/hooks/operate';
 import { fmtNum } from '@/lib/format';
 import type { CompetitorListItem } from '@/lib/api/types';
 import type { RouteKey } from '@/lib/types';
@@ -28,18 +28,13 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
   const { data, isLoading } = useCompetitors(host === 'all' ? undefined : host);
   const rows = useMemo(() => data?.data ?? [], [data]);
 
-  // Host chips are derived from the full (unfiltered) listing — fetched once with no host filter.
-  const allQuery = useCompetitors();
-  const all = useMemo(() => allQuery.data?.data ?? [], [allQuery.data]);
-  const hostCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const c of all) {
-      const h = c.source?.host;
-      if (h) counts.set(h, (counts.get(h) ?? 0) + 1);
-    }
-    return counts;
-  }, [all]);
-  const hosts = useMemo(() => ['all', ...hostCounts.keys()], [hostCounts]);
+  // Host chips use EXACT per-host counts from the SQL facet endpoint (scales to 500k SKU; not a
+  // count of the single loaded page).
+  const facetsQuery = useHostFacets();
+  const facets = useMemo(() => facetsQuery.data ?? [], [facetsQuery.data]);
+  const hostCounts = useMemo(() => new Map(facets.map((f) => [f.host, f.count])), [facets]);
+  const totalListings = useMemo(() => facets.reduce((sum, f) => sum + f.count, 0), [facets]);
+  const hosts = useMemo(() => ['all', ...facets.map((f) => f.host)], [facets]);
 
   const targetsQuery = useTargets('all');
   const targets = targetsQuery.data?.data ?? [];
@@ -82,7 +77,7 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
       <div className="page-head">
         <div>
           <h1 className="page-title">Competitors</h1>
-          <p className="page-sub">{fmtNum(all.length)} confirmed competitor listings across {hostCounts.size} hosts.</p>
+          <p className="page-sub">{fmtNum(totalListings)} confirmed competitor listings across {facets.length} hosts.</p>
         </div>
         <div className="page-actions">
           <button type="button" className="btn" onClick={() => setAddOpen(true)}>
@@ -148,7 +143,7 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
         {hosts.map((h) => (
           <button key={h} type="button" className={`chip ${host === h ? 'active' : ''}`} onClick={() => setHost(h)}>
             {h === 'all' ? 'All hosts' : h}
-            <span className="count">{h === 'all' ? all.length : (hostCounts.get(h) ?? 0)}</span>
+            <span className="count">{h === 'all' ? totalListings : (hostCounts.get(h) ?? 0)}</span>
           </button>
         ))}
       </div>
