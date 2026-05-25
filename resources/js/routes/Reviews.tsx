@@ -80,8 +80,8 @@ export function Reviews() {
             <div className="card-head"><h3 className="card-title">Theme bars · what they talk about</h3></div>
             <div className="card-body">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {themes.map((t) => (
-                  <div key={t.theme}>
+                {themes.map((t, i) => (
+                  <div key={`${t.theme}-${i}`}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12 }}>
                       <span style={{ fontWeight: 500 }}>{t.theme}</span>
                       <span className="mono muted">{t.mentions} mentions</span>

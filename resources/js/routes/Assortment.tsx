@@ -117,19 +117,22 @@ export function Assortment() {
               </tr>
             </thead>
             <tbody>
-              {(focusedCat?.gaps ?? gaps).map((g) => (
-                <tr key={g.id}>
-                  <td style={{ fontWeight: 500, fontSize: 12.5 }}>{g.title ?? '—'}</td>
-                  <td className="muted">{g.category_path}</td>
-                  <td className="center mono">{g.importance_score}</td>
-                  <td><span className={`badge ${g.status === 'open' ? 'paused' : 'pending'}`}><span className="dot" />{g.status}</span></td>
-                  <td>
-                    {safeHttpUrl(g.competitor_product_url)
-                      ? <a className="id-link mono" href={safeHttpUrl(g.competitor_product_url)} target="_blank" rel="noreferrer noopener" style={{ fontSize: 11 }}>open</a>
-                      : '—'}
-                  </td>
-                </tr>
-              ))}
+              {(focusedCat?.gaps ?? gaps).map((g) => {
+                const href = safeHttpUrl(g.competitor_product_url);
+                return (
+                  <tr key={g.id}>
+                    <td style={{ fontWeight: 500, fontSize: 12.5 }}>{g.title ?? '—'}</td>
+                    <td className="muted">{g.category_path}</td>
+                    <td className="center mono">{g.importance_score}</td>
+                    <td><span className={`badge ${g.status === 'open' ? 'paused' : 'pending'}`}><span className="dot" />{g.status}</span></td>
+                    <td>
+                      {href
+                        ? <a className="id-link mono" href={href} target="_blank" rel="noreferrer noopener" style={{ fontSize: 11 }}>open</a>
+                        : '—'}
+                    </td>
+                  </tr>
+                );
+              })}
               {gaps.length === 0 && <tr><td colSpan={5} className="empty">No gaps</td></tr>}
             </tbody>
           </table>
