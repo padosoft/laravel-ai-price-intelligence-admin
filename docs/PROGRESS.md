@@ -36,9 +36,13 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
 - [x] **B5** — wire placeholder actions/forms (see "B5 wiring progress" below): all actions wired,
   optimistic+rollback, per-action vitest; no dead buttons remain. Required core **v1.6.0** anomaly-ack
   backfill (PR #16). On `feat/admin-b5-wire-actions`.
-- [ ] **B6** — enterprise UX (500k SKU): infinite-scroll/cursor pagination on every list; table
-  **virtualization** (`@tanstack/react-virtual`); Competitors **host-count chips** (`/facets/hosts`);
-  **AI-decision-log viewer** in Compliance (`GET /ai-decisions`).
+- [x] **B6** — enterprise UX (500k SKU) on `feat/admin-b6-enterprise-ux`: reusable `VirtualTable`
+  (`@tanstack/react-virtual`, spacer-row technique, jsdom/SSR fallback) + `useInfiniteQuery`
+  (`useCatalogInfinite`/`useCompetitorsInfinite`, follow `next_cursor`, server-side brand/host
+  filters, infinite-scroll prefetch) on Catalog & Competitors; Competitors **host-count chips** now
+  from `GET /facets/hosts` (exact SQL counts via `useHostFacets`); **AI-decision-log viewer** in
+  Compliance (`GET /ai-decisions` via `useAiDecisions`). 80 vitest green. Smaller operational lists
+  (targets/alerts/rules/anomalies) stay single-page (bounded); the 500k-scale lists are virtualized.
 - [ ] **B7** — SSE **bearer/polling fallback**: interval refetch of `['alerts']` when EventSource is
   unavailable (bearer/headless); keep cookie-mode SSE primary; both tested.
 - [ ] **B8** — release hygiene: admin **CHANGELOG.md**, deploy + user/admin guides, consolidate
