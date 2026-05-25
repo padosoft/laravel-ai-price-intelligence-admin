@@ -131,6 +131,14 @@ describe('Compliance', () => {
     expect(screen.getByRole('heading', { name: 'Compliance checks' })).toBeInTheDocument();
   });
 
+  it('renders the AI decision log (GET /ai-decisions)', async () => {
+    wrap(<Compliance />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: /AI decision log/ })).toBeInTheDocument());
+    // A feature from the fixture decisions appears in the table.
+    await waitFor(() => expect(screen.getAllByText('visual_match').length).toBeGreaterThan(0));
+    expect(screen.getByText('content_gap')).toBeInTheDocument();
+  });
+
   it('exports the attestation via the print dialog', async () => {
     const user = userEvent.setup();
     const printSpy = vi.fn();
