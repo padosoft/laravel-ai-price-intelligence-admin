@@ -28,7 +28,10 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
     const es = new EventSource(alertStreamUrl(), { withCredentials: true });
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false); // EventSource retries automatically
-    es.onmessage = (ev: MessageEvent<string>) => {
+    // The core dispatches named SSE events (`event: alert` for payloads, `event: heartbeat`
+    // for keep-alives), so listen for 'alert' specifically — the default onmessage handler
+    // would never fire for named events.
+    const onAlert = (ev: MessageEvent<string>) => {
       try {
         const alert = JSON.parse(ev.data) as Alert;
         qc.setQueriesData<CursorPage<Alert>>({ queryKey: ['alerts'] }, (prev) => {
@@ -39,10 +42,11 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
           return { ...prev, data: [alert, ...prev.data.filter((a) => a.id !== alert.id)].slice(0, cap) };
         });
       } catch {
-        // Ignore malformed frames (e.g. keep-alive comments).
+        // Ignore malformed frames.
       }
     };
-    return () => { es.close(); setConnected(false); };
+    es.addEventListener('alert', onAlert as EventListener);
+    return () => { es.removeEventListener('alert', onAlert as EventListener); es.close(); setConnected(false); };
   }, [supported, qc]);
 
   return <AlertStreamContext.Provider value={{ connected, supported }}>{children}</AlertStreamContext.Provider>;
