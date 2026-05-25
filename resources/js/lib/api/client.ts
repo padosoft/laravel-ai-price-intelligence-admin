@@ -1,6 +1,6 @@
 import { apiBase, runtimeConfig } from '@/config';
 import type { ProblemDetails } from './types';
-import { mockFetch } from './mocks';
+import { mockDownload, mockFetch } from './mocks';
 import { getBearerToken } from './token';
 
 // Re-exported from its own module so the mock layer can throw it without a circular import.
@@ -92,4 +92,66 @@ export const api = {
 /** Unwrap a `{ data: T }` single-resource envelope. */
 export function unwrap<T>(res: { data: T }): T {
   return res.data;
+}
+
+export interface DownloadResult {
+  blob: Blob;
+  filename: string;
+}
+
+/** Parse the download filename out of a Content-Disposition header, if present. */
+function filenameFromDisposition(header: string | null): string | null {
+  if (!header) return null;
+  const star = header.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
+  if (star) return decodeURIComponent(star[1].replace(/^"|"$/g, ''));
+  const plain = header.match(/filename="?([^";]+)"?/i);
+  return plain ? plain[1] : null;
+}
+
+/**
+ * Fetch a binary/streamed download (the core's `:export` CSV endpoints) as a Blob, applying
+ * the same auth as `request`. In mock mode it resolves a synthesized CSV so the dev SPA and
+ * tests work without a backend. Returns the blob + resolved filename without touching the DOM
+ * (the caller decides when/how to save), so it stays unit-testable.
+ */
+export async function fetchBlob(path: string, query: Query | undefined, fallbackName: string): Promise<DownloadResult> {
+  if (runtimeConfig.useMocks) {
+    const { text, filename } = mockDownload(path, query);
+    return { blob: new Blob([text], { type: 'text/csv' }), filename: filename || fallbackName };
+  }
+
+  const headers: Record<string, string> = {};
+  const bearer = runtimeConfig.auth.mode === 'bearer';
+  if (bearer) {
+    const token = getBearerToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(buildUrl(path, query), {
+    method: 'GET',
+    credentials: bearer ? 'omit' : 'include',
+    headers,
+  });
+  if (!res.ok) throw new ApiError(res.status, null, `HTTP ${res.status}: export failed`);
+  const blob = await res.blob();
+  return { blob, filename: filenameFromDisposition(res.headers.get('Content-Disposition')) ?? fallbackName };
+}
+
+/** Trigger a browser "Save as" for a blob. No-op where the DOM/URL APIs are unavailable (jsdom). */
+export function saveBlob(blob: Blob, filename: string): void {
+  if (typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function' || typeof document === 'undefined') return;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Fetch a `:export` endpoint and save it to the user's downloads. */
+export async function downloadCsv(path: string, query: Query | undefined, fallbackName: string): Promise<void> {
+  const { blob, filename } = await fetchBlob(path, query, fallbackName);
+  saveBlob(blob, filename);
 }

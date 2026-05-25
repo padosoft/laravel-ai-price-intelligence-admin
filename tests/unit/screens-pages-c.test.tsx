@@ -52,6 +52,18 @@ describe('Narrative', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: /Aggressive undercut/ })).toBeInTheDocument());
     expect(screen.getByLabelText('Narrative period')).toBeInTheDocument();
   });
+
+  it('exports the narrative to PDF via the print dialog', async () => {
+    const user = userEvent.setup();
+    const printSpy = vi.fn();
+    vi.stubGlobal('print', printSpy);
+    wrap(<Narrative />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Weekly narrative' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Export PDF/ }));
+    await waitFor(() => expect(screen.getByText('Preparing PDF')).toBeInTheDocument());
+    expect(printSpy).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
 });
 
 describe('Assortment', () => {
@@ -61,6 +73,14 @@ describe('Assortment', () => {
     // A gap title from the fixture appears in the detail table.
     await waitFor(() => expect(screen.getByText('Rival Z9 256GB')).toBeInTheDocument());
     expect(screen.getByRole('heading', { name: 'Top categories' })).toBeInTheDocument();
+  });
+
+  it('exports assortment gaps as CSV (client-side)', async () => {
+    const user = userEvent.setup();
+    wrap(<Assortment />);
+    await waitFor(() => expect(screen.getByText('Rival Z9 256GB')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Export/ }));
+    await waitFor(() => expect(screen.getByText('Export ready')).toBeInTheDocument());
   });
 });
 

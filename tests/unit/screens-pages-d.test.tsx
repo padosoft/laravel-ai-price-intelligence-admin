@@ -128,6 +128,18 @@ describe('Compliance', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: /Compliance/, level: 1 })).toBeInTheDocument());
     expect(screen.getByRole('heading', { name: 'Compliance checks' })).toBeInTheDocument();
   });
+
+  it('exports the attestation via the print dialog', async () => {
+    const user = userEvent.setup();
+    const printSpy = vi.fn();
+    vi.stubGlobal('print', printSpy);
+    wrap(<Compliance />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Compliance/, level: 1 })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Export attestation/ }));
+    await waitFor(() => expect(screen.getByText('Preparing attestation')).toBeInTheDocument());
+    expect(printSpy).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
 });
 
 describe('Settings', () => {

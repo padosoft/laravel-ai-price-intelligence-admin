@@ -3,7 +3,7 @@ import type { KeyboardEvent } from 'react';
 import { I } from '@/components/ds/icons';
 import { Price, Tag } from '@/components/ds/pricing';
 import { Modal, useToast } from '@/components/ds';
-import { useCatalog, useCatalogActions } from '@/hooks/operate';
+import { useCatalog, useCatalogActions, useCsvExport } from '@/hooks/operate';
 import { fmtNum } from '@/lib/format';
 import type { RouteKey } from '@/lib/types';
 
@@ -11,8 +11,15 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
   const { data, isLoading } = useCatalog();
   const products = useMemo(() => data?.data ?? [], [data]);
   const { createSku, importCsv } = useCatalogActions();
+  const csvExport = useCsvExport();
   const toast = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
+
+  const onExport = () =>
+    csvExport.mutate(
+      { path: '/catalog/products:export', filename: 'catalog.csv' },
+      { onSuccess: () => toast.push({ title: 'Export ready', body: 'catalog.csv' }), onError: () => toast.push({ title: 'Export failed', kind: 'error' }) },
+    );
 
   const [open, setOpen] = useState(false);
   const [externalId, setExternalId] = useState('');
@@ -75,6 +82,9 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
             style={{ display: 'none' }}
             onChange={(e) => { onPickCsv(e.target.files?.[0]); e.target.value = ''; }}
           />
+          <button type="button" className="btn" disabled={csvExport.isPending} onClick={onExport}>
+            <I.External size={13} /> {csvExport.isPending ? 'Exporting…' : 'Export CSV'}
+          </button>
           <button type="button" className="btn" disabled={importCsv.isPending} onClick={() => fileInput.current?.click()}>
             <I.External size={13} /> {importCsv.isPending ? 'Importing…' : 'Import CSV'}
           </button>

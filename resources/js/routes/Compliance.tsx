@@ -1,10 +1,13 @@
 import { I } from '@/components/ds/icons';
+import { useToast } from '@/components/ds';
 import { useAuth } from '@/state/auth-context';
-import { useFetchLogs } from '@/hooks/operate';
+import { useFetchLogs, printDocument } from '@/hooks/operate';
 
 export function Compliance() {
   const { hasFeature } = useAuth();
   const logs = useFetchLogs(20);
+  const toast = useToast();
+  const exportAttestation = () => { toast.push({ title: 'Preparing attestation', body: 'Opening the print dialog…' }); printDocument(); };
 
   const aiAct = hasFeature('ai_act');
   const pii = hasFeature('pii');
@@ -34,7 +37,7 @@ export function Compliance() {
           </p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn"><I.External size={13} /> Export attestation</button>
+          <button type="button" className="btn" onClick={exportAttestation}><I.External size={13} /> Export attestation</button>
         </div>
       </div>
 

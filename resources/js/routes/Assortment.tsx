@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import { I } from '@/components/ds/icons';
 import { Treemap, type TreemapItem } from '@/components/charts';
+import { useToast } from '@/components/ds';
 import { useAssortmentGaps } from '@/hooks/operate';
+import { saveBlob } from '@/lib/api/client';
+import { toCsv } from '@/lib/csv';
 import { safeHttpUrl } from '@/lib/url';
 import type { AssortmentGap } from '@/lib/api/types';
 
@@ -32,6 +35,18 @@ export function Assortment() {
   const focusedCat = categories.find((c) => c.category === focused) ?? null;
   const treemapItems: TreemapItem[] = categories.map((c) => ({ id: c.category, label: c.category, value: c.count, score: c.score }));
 
+  const toast = useToast();
+  const onExport = () => {
+    // Export the already-loaded gaps as CSV client-side (the core has no assortment :export
+    // endpoint; this serializes real data, not synthetic).
+    const csv = toCsv(
+      ['category_path', 'title', 'competitor_product_url', 'importance_score', 'status'],
+      gaps.map((g) => [g.category_path, g.title, g.competitor_product_url, g.importance_score, g.status]),
+    );
+    saveBlob(new Blob([csv], { type: 'text/csv' }), 'assortment-gaps.csv');
+    toast.push({ title: 'Export ready', body: 'assortment-gaps.csv' });
+  };
+
   return (
     <div className="page" data-testid="page-assortment">
       <div className="page-head">
@@ -40,7 +55,7 @@ export function Assortment() {
           <p className="page-sub">Categories where competitors list SKUs you don't. Click a tile to focus its category.</p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn"><I.External size={13} /> Export</button>
+          <button type="button" className="btn" disabled={gaps.length === 0} onClick={onExport}><I.External size={13} /> Export</button>
         </div>
       </div>
 

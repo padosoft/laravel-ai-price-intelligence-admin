@@ -29,6 +29,20 @@ describe('Dashboard', () => {
     // 4120 active targets from the stats fixture, formatted with a thousands separator.
     await waitFor(() => expect(screen.getByText('4,120')).toBeInTheDocument());
   });
+
+  it('wires Refresh and Export digest (no dead buttons)', async () => {
+    const user = userEvent.setup();
+    const printSpy = vi.fn();
+    vi.stubGlobal('print', printSpy);
+    wrap(<Dashboard onNavigate={() => {}} />);
+    await waitFor(() => expect(screen.getByText('Active targets')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Refresh/ }));
+    await waitFor(() => expect(screen.getByText('Refreshing')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Export digest/ }));
+    await waitFor(() => expect(screen.getByText('Preparing digest')).toBeInTheDocument());
+    expect(printSpy).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
 });
 
 describe('Catalog', () => {
@@ -66,6 +80,14 @@ describe('Catalog', () => {
     const file = new File(['external_id,name\nX,Y'], 'catalog.csv', { type: 'text/csv' });
     await user.upload(screen.getByTestId('csv-input') as HTMLInputElement, file);
     await waitFor(() => expect(screen.getByText('CSV import queued')).toBeInTheDocument());
+  });
+
+  it('exports the catalog as CSV (GET /catalog/products:export)', async () => {
+    const user = userEvent.setup();
+    wrap(<Catalog onNavigate={() => {}} />);
+    await waitFor(() => expect(screen.getByText('Acme X1 Pro 128GB Smartphone')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Export CSV/ }));
+    await waitFor(() => expect(screen.getByText('Export ready')).toBeInTheDocument());
   });
 });
 

@@ -1,4 +1,5 @@
 import { ApiError } from './errors';
+import { toCsv } from '../csv';
 import type { CursorPage, DashboardStats, RepricingRule, TenantMe, TenantSettings } from './types';
 import {
   ALERTS,
@@ -287,6 +288,34 @@ const LIST_PATHS = [
 /** Allow phases A3+ to register/override fixtures without touching the client. */
 export function registerMock(key: string, handler: Handler): void {
   handlers[key] = handler;
+}
+
+/**
+ * Synthesize the streamed CSV the core's `:export` endpoints return, from the current mock
+ * state, so the dev SPA and tests exercise the export flow without a live backend. Mirrors the
+ * core ExportController column sets.
+ */
+export function mockDownload(path: string, _query?: Record<string, unknown>): { text: string; filename: string } {
+  if (path === '/catalog/products:export') {
+    return {
+      filename: 'catalog.csv',
+      text: toCsv(
+        ['external_id', 'sku', 'gtin', 'mpn', 'brand', 'name', 'our_price_cents', 'currency'],
+        mockProducts.map((p) => [p.external_id, p.sku, p.gtin, p.mpn, p.brand, p.name, p.our_price_cents, p.currency]),
+      ),
+    };
+  }
+  if (path === '/observations/prices:export') {
+    const rows = Object.values(PRICE_SERIES).flat();
+    return {
+      filename: 'prices.csv',
+      text: toCsv(
+        ['competitor_product_id', 'captured_at', 'price_cents', 'currency', 'price_base_cents', 'available'],
+        rows.map((o) => [o.competitor_product_id, o.captured_at, o.price_cents, o.currency, o.price_base_cents, o.available ? 1 : 0]),
+      ),
+    };
+  }
+  return { filename: 'export.csv', text: '' };
 }
 
 export async function mockFetch<T>(

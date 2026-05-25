@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, unwrap } from '@/lib/api/client';
+import { api, downloadCsv, unwrap } from '@/lib/api/client';
 import type {
   Alert,
   Anomaly,
@@ -67,6 +67,32 @@ function useOptimisticCreate<TVars, TItem, TResult>(
 /** Monotonic source of negative ids for optimistic temp rows (never collides with server ids). */
 let tempIdSeq = -1;
 function nextTempId(): number { return tempIdSeq--; }
+
+/** Spec for a streamed CSV export (the core's `:export` endpoints). */
+export interface CsvExportSpec {
+  path: string;
+  query?: Record<string, string | number | boolean | null | undefined>;
+  filename: string;
+}
+
+/**
+ * Streamed CSV export as a mutation, so screens get isPending/disabled state and error toasts.
+ * Resolves once the file has been fetched and handed to the browser's download.
+ */
+export function useCsvExport() {
+  return useMutation({
+    mutationFn: ({ path, query, filename }: CsvExportSpec) => downloadCsv(path, query, filename),
+  });
+}
+
+/**
+ * Produce a PDF-style document from the currently rendered page via the browser's native
+ * print-to-PDF. Used for narrative/digest/attestation exports the core does not stream as a
+ * file — it prints the real on-screen content (no synthetic data). No-op outside a browser.
+ */
+export function printDocument(): void {
+  if (typeof window !== 'undefined' && typeof window.print === 'function') window.print();
+}
 
 export function useCatalog() {
   return useQuery({

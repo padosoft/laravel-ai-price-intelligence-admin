@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { I } from '@/components/ds/icons';
 import { Price, PriceDelta, HostChip } from '@/components/ds/pricing';
 import { PriceLineChart, PriceDistribution, type PriceSeries } from '@/components/charts';
-import { useCatalog, useCompetitors, usePriceSeries } from '@/hooks/operate';
+import { useToast } from '@/components/ds';
+import { useCatalog, useCompetitors, useCsvExport, usePriceSeries } from '@/hooks/operate';
 import type { PriceObservation } from '@/lib/api/types';
 
 const HOSTS: Array<{ host: string; color: string; thick?: boolean }> = [
@@ -53,6 +54,14 @@ export function Prices() {
     .filter((c) => c.latest_price?.price_cents != null)
     .map((c) => ({ name: c.source?.host?.split('.')[0] ?? '?', price: c.latest_price!.price_cents! }));
 
+  const csvExport = useCsvExport();
+  const toast = useToast();
+  const onExport = () =>
+    csvExport.mutate(
+      { path: '/observations/prices:export', filename: 'prices.csv' },
+      { onSuccess: () => toast.push({ title: 'Export ready', body: 'prices.csv' }), onError: () => toast.push({ title: 'Export failed', kind: 'error' }) },
+    );
+
   const toggleHost = (host: string) =>
     setActive((prev) => {
       const next = new Set(prev);
@@ -69,7 +78,9 @@ export function Prices() {
           <p className="page-sub">Analytic playground over price observations. Partitioned monthly · 90d raw retention + ∞ daily aggregates.</p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn"><I.External size={13} /> Export CSV</button>
+          <button type="button" className="btn" disabled={csvExport.isPending} onClick={onExport}>
+            <I.External size={13} /> {csvExport.isPending ? 'Exporting…' : 'Export CSV'}
+          </button>
         </div>
       </div>
 

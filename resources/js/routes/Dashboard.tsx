@@ -1,9 +1,11 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { I } from '@/components/ds/icons';
 import { AiBadge, PriceDelta } from '@/components/ds/pricing';
 import { PriceLineChart, StackedBar, type PriceSeries } from '@/components/charts';
 import { KpiTile, AlertFeedRow } from '@/components/screens/shared';
+import { useToast } from '@/components/ds';
 import { useStats } from '@/hooks/useStats';
-import { useAlerts, useAnomalies, usePriceSeries } from '@/hooks/operate';
+import { useAlerts, useAnomalies, printDocument, usePriceSeries } from '@/hooks/operate';
 import { fmtNum } from '@/lib/format';
 import type { RouteKey } from '@/lib/types';
 import type { PriceObservation } from '@/lib/api/types';
@@ -45,6 +47,11 @@ export function Dashboard({ onNavigate }: { onNavigate: (r: RouteKey) => void })
     data: toPoints(seriesByHost[h.host]),
   })).filter((s) => s.data.length > 0);
 
+  const qc = useQueryClient();
+  const toast = useToast();
+  const refresh = () => { void qc.invalidateQueries(); toast.push({ title: 'Refreshing', body: 'Re-fetching live metrics…' }); };
+  const exportDigest = () => { toast.push({ title: 'Preparing digest', body: 'Opening the print dialog…' }); printDocument(); };
+
   const s = stats.data;
   const distrib = [
     { label: 'Cheaper than us', value: 28, color: 'var(--price-cheaper)' },
@@ -60,10 +67,10 @@ export function Dashboard({ onNavigate }: { onNavigate: (r: RouteKey) => void })
           <p className="page-sub">Real-time competitive intelligence across your monitored markets.</p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn">
+          <button type="button" className="btn" onClick={refresh}>
             <I.Refresh size={13} /> Refresh
           </button>
-          <button type="button" className="btn">
+          <button type="button" className="btn" onClick={exportDigest}>
             <I.FileText size={13} /> Export digest
           </button>
         </div>

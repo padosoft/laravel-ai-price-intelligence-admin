@@ -130,4 +130,12 @@ describe('Prices', () => {
     await waitFor(() => expect(screen.getByLabelText('Product')).toBeInTheDocument());
     expect(screen.getByText('Competitor prices')).toBeInTheDocument();
   });
+
+  it('exports price observations as CSV (GET /observations/prices:export)', async () => {
+    const user = userEvent.setup();
+    wrap(<Prices />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Prices explorer' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Export CSV/ }));
+    await waitFor(() => expect(screen.getByText('Export ready')).toBeInTheDocument());
+  });
 });
