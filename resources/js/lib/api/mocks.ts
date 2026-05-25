@@ -3,6 +3,7 @@ import type { CursorPage, DashboardStats, TenantMe } from './types';
 import {
   ALERTS,
   ANOMALIES,
+  API_KEYS,
   ASSORTMENT_GAPS,
   COMPETITOR_LIST,
   CONTENT_GAPS,
@@ -13,7 +14,10 @@ import {
   PRICE_SERIES_BY_CP,
   PRODUCTS,
   REVIEWS,
+  RULE_DECISIONS,
+  RULES,
   TARGETS,
+  WEBHOOKS,
 } from './fixtures';
 
 // Dev/test fixture layer. Active only when runtimeConfig.useMocks is true (no live
@@ -101,6 +105,10 @@ const handlers: Record<string, Handler> = {
       ),
     );
   },
+  'GET /rules': () => page(RULES),
+  'GET /rule-decisions': () => page(RULE_DECISIONS),
+  'GET /webhook-subscriptions': () => page(WEBHOOKS),
+  'GET /api-keys': () => page(API_KEYS),
   'GET /forecasts': () => page(FORECASTS),
   'GET /narratives': (query) => {
     const period = query?.period as string | undefined;
