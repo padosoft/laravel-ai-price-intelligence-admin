@@ -99,7 +99,7 @@ export function Reviews() {
           </div>
         </div>
       ) : (
-        <div className="card"><div className="card-body empty">{isLoading ? 'Loading…' : 'Review insight module is disabled or has no data for this tenant.'}</div></div>
+        <div className="card"><div className="card-body empty">{isLoading ? 'Loading…' : 'No review insights yet for the opted-in domains.'}</div></div>
       )}
     </div>
   );
