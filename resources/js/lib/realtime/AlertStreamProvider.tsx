@@ -1,24 +1,20 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { runtimeConfig } from '@/config';
 import type { Alert, CursorPage } from '@/lib/api/types';
-
-export interface AlertStreamState {
-  /** True while the SSE connection is open. */
-  connected: boolean;
-  /** False when there is no live transport (mock/dev or a non-SSE driver). */
-  supported: boolean;
-}
+import { AlertStreamContext } from './alert-stream-context';
 
 /**
- * Subscribes to the core's Server-Sent Events alert stream (`GET /alerts/stream`) and
- * prepends incoming alerts into the cached `['alerts']` pages so open screens update live.
+ * Mounts a single Server-Sent Events subscription to the core's alert stream
+ * (`GET /alerts/stream`) for the whole app, prepending incoming alerts into the cached
+ * `['alerts']` pages so every open screen updates live. Wrap the app once.
  *
- * - Uses cookie credentials in SPA mode (EventSource can't set a Bearer header; bearer/headless
+ * - Cookie credentials in SPA mode (EventSource can't set a Bearer header; bearer/headless
  *   deployments fall back to polling — `supported` is false there).
  * - No-ops against the dev/test mock layer so unit/e2e runs never open a real connection.
  */
-export function useAlertStream(enabled = true): AlertStreamState {
+export function AlertStreamProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const supported =
     !runtimeConfig.useMocks &&
@@ -28,7 +24,7 @@ export function useAlertStream(enabled = true): AlertStreamState {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    if (!enabled || !supported) return;
+    if (!supported) return;
     const es = new EventSource(`${runtimeConfig.apiBaseUrl}/alerts/stream`, { withCredentials: true });
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false); // EventSource retries automatically
@@ -47,7 +43,7 @@ export function useAlertStream(enabled = true): AlertStreamState {
       }
     };
     return () => { es.close(); setConnected(false); };
-  }, [enabled, supported, qc]);
+  }, [supported, qc]);
 
-  return { connected, supported };
+  return <AlertStreamContext.Provider value={{ connected, supported }}>{children}</AlertStreamContext.Provider>;
 }

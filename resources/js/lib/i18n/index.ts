@@ -19,7 +19,8 @@ void i18n.use(initReactI18next).init({
 // Keep <html lang> in sync with the active locale (initial + on every switch) so assistive
 // tech and the browser announce content in the correct language.
 function syncDocumentLang(lng: string): void {
-  if (typeof document !== 'undefined') document.documentElement.lang = lng.startsWith('it') ? 'it' : 'en';
+  // Mirror the init rule: only 'en' is English; everything else resolves to Italian.
+  if (typeof document !== 'undefined') document.documentElement.lang = lng === 'en' ? 'en' : 'it';
 }
 syncDocumentLang(i18n.language);
 i18n.on('languageChanged', syncDocumentLang);
