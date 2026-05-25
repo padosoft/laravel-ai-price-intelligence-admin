@@ -11,6 +11,12 @@ import { Narrative } from './Narrative';
 import { Assortment } from './Assortment';
 import { ContentGap } from './ContentGap';
 import { Reviews } from './Reviews';
+import { Repricer } from './Repricer';
+import { Alerts } from './Alerts';
+import { Webhooks } from './Webhooks';
+import { ApiKeys } from './ApiKeys';
+import { Compliance } from './Compliance';
+import { Settings } from './Settings';
 import { ROUTE_TITLES } from '@/components/layout/nav';
 import type { RouteKey } from '@/lib/types';
 
@@ -68,6 +74,18 @@ export function PageRouter({ route, routeParams, onNavigate }: PageRouterProps) 
       return <ContentGap />;
     case 'reviews':
       return <Reviews />;
+    case 'repricer':
+      return <Repricer />;
+    case 'alerts':
+      return <Alerts />;
+    case 'webhooks':
+      return <Webhooks />;
+    case 'api_keys':
+      return <ApiKeys />;
+    case 'compliance':
+      return <Compliance />;
+    case 'settings':
+      return <Settings />;
     default:
       return <ComingSoon route={route} />;
   }

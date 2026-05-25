@@ -16,9 +16,9 @@ describe('api client (mock-backed in tests)', () => {
   });
 
   it('returns an empty page for unseeded list endpoints', async () => {
-    // /rules has no mock fixtures yet (Repricer screen lands in A6), so it resolves to an
-    // empty page via the LIST_PATHS fallback.
-    const res = await api.get<{ data: unknown[] }>('/rules');
+    // /audit/fetch-logs has no mock fixtures, so it resolves to an empty page via the
+    // LIST_PATHS fallback.
+    const res = await api.get<{ data: unknown[] }>('/audit/fetch-logs');
     expect(res.data).toEqual([]);
   });
 });

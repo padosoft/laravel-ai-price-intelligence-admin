@@ -3,6 +3,7 @@ import type { CursorPage, DashboardStats, TenantMe } from './types';
 import {
   ALERTS,
   ANOMALIES,
+  API_KEYS,
   ASSORTMENT_GAPS,
   COMPETITOR_LIST,
   CONTENT_GAPS,
@@ -13,7 +14,10 @@ import {
   PRICE_SERIES_BY_CP,
   PRODUCTS,
   REVIEWS,
+  RULE_DECISIONS,
+  RULES,
   TARGETS,
+  WEBHOOKS,
 } from './fixtures';
 
 // Dev/test fixture layer. Active only when runtimeConfig.useMocks is true (no live
@@ -74,6 +78,27 @@ type Handler = (query?: Record<string, unknown>, body?: unknown) => unknown;
 export const processedMatchIds = new Set<number>();
 export function resetMatchMocks(): void { processedMatchIds.clear(); }
 
+/**
+ * Mutable in-memory state for the new A6 resources so mutations are reflected in
+ * subsequent GET requests during the same mock session. Exported reset helpers let
+ * tests restore fixture state between cases.
+ */
+let mockAlerts = ALERTS.map((a) => ({ ...a }));
+let mockRules = RULES.map((r) => ({ ...r }));
+let mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
+let mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+let apiKeySeq = 90000;
+function nextApiKeyId(): number { return ++apiKeySeq; }
+
+export function resetMockState(): void {
+  processedMatchIds.clear();
+  mockAlerts = ALERTS.map((a) => ({ ...a }));
+  mockRules = RULES.map((r) => ({ ...r }));
+  mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
+  mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+  apiKeySeq = 90000;
+}
+
 /** Registry keyed by "METHOD /path" (exact) or "METHOD /prefix/*" patterns. */
 const handlers: Record<string, Handler> = {
   'GET /tenants/me': () => ({ data: TENANT_ME }),
@@ -83,7 +108,7 @@ const handlers: Record<string, Handler> = {
     const status = query?.status as string | undefined;
     return page(status ? TARGETS.filter((t) => t.status === status) : TARGETS);
   },
-  'GET /alerts': () => page(ALERTS),
+  'GET /alerts': () => page(mockAlerts),
   'GET /anomalies': () => page(ANOMALIES),
   'GET /observations/prices': (query) => {
     const cpId = query?.competitor_product_id != null ? Number(query.competitor_product_id) : null;
@@ -101,6 +126,10 @@ const handlers: Record<string, Handler> = {
       ),
     );
   },
+  'GET /rules': () => page(mockRules),
+  'GET /rule-decisions': () => page(RULE_DECISIONS),
+  'GET /webhook-subscriptions': () => page(mockWebhooks),
+  'GET /api-keys': () => page(mockApiKeys),
   'GET /forecasts': () => page(FORECASTS),
   'GET /narratives': (query) => {
     const period = query?.period as string | undefined;
@@ -182,10 +211,62 @@ export async function mockFetch<T>(
       },
     } as T;
   }
+  if (method === 'POST' && path === '/api-keys') {
+    const b = (body ?? {}) as { name?: string; scopes?: string[] };
+    // Deterministic id/plaintext (monotonic counter) so mock behaviour and tests are stable.
+    const id = nextApiKeyId();
+    const plaintext = `piprice_mock${String(id).padStart(8, '0')}`;
+    // The stored key never holds the plaintext (mirrors the core: the secret is returned
+    // once in the POST response and is not retrievable afterwards).
+    mockApiKeys.push({ id, name: b.name ?? 'New key', scopes: b.scopes ?? [], last_used_at: null, expires_at: null, revoked_at: null, created_at: '2026-05-25T00:00:00Z' });
+    return { data: { id, name: b.name ?? 'New key', scopes: b.scopes ?? [], plaintext } } as T;
+  }
+  // Revoke API key
+  const apiKeyDelete = method === 'DELETE' && path.match(/^\/api-keys\/(\d+)$/);
+  if (apiKeyDelete) {
+    const id = Number(apiKeyDelete[1]);
+    const key = mockApiKeys.find((k) => k.id === id);
+    if (key) key.revoked_at = new Date().toISOString();
+    return undefined as T;
+  }
   if (method === 'POST' && /^\/matches\/\d+\/(approve|reject)$/.test(path)) {
     const id = Number(path.split('/')[2]);
     processedMatchIds.add(id);
     return (path.endsWith('approve') ? { data: { match_status: 'confirmed' } } : undefined) as T;
+  }
+  // Acknowledge alert
+  const alertAck = method === 'POST' && path.match(/^\/alerts\/(\d+)\/ack$/);
+  if (alertAck) {
+    const id = Number(alertAck[1]);
+    const alert = mockAlerts.find((a) => a.id === id);
+    if (alert) alert.acknowledged_at = new Date().toISOString();
+    return undefined as T;
+  }
+  // Update rule (pause/activate)
+  const rulePatch = method === 'PATCH' && path.match(/^\/rules\/(\d+)$/);
+  if (rulePatch) {
+    const id = Number(rulePatch[1]);
+    const rule = mockRules.find((r) => r.id === id);
+    if (rule) Object.assign(rule, body as object);
+    return { data: rule ?? {} } as T;
+  }
+  // Delete rule
+  const ruleDelete = method === 'DELETE' && path.match(/^\/rules\/(\d+)$/);
+  if (ruleDelete) {
+    const id = Number(ruleDelete[1]);
+    mockRules = mockRules.filter((r) => r.id !== id);
+    return undefined as T;
+  }
+  // Test webhook (fire-and-forget)
+  if (method === 'POST' && /^\/webhook-subscriptions\/\d+\/test$/.test(path)) {
+    return { data: { queued: true } } as T;
+  }
+  // Delete webhook subscription
+  const webhookDelete = method === 'DELETE' && path.match(/^\/webhook-subscriptions\/(\d+)$/);
+  if (webhookDelete) {
+    const id = Number(webhookDelete[1]);
+    mockWebhooks = mockWebhooks.filter((w) => w.id !== id);
+    return undefined as T;
   }
   if (method === 'POST' && /^\/rules\/\d+\/simulate$/.test(path)) {
     return { data: { rule_id: 0, strategy: 'undercut_pct', custom_not_simulated: false, decisions: [] } } as T;

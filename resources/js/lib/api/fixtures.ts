@@ -3,6 +3,7 @@
 import type {
   Alert,
   Anomaly,
+  ApiKey,
   AssortmentGap,
   CompetitorListItem,
   CompetitorProduct,
@@ -13,7 +14,10 @@ import type {
   Narrative,
   PriceObservation,
   Product,
+  RepricingRule,
   ReviewInsight,
+  RuleDecision,
+  WebhookSubscription,
 } from './types';
 
 export const PRODUCTS: Product[] = [
@@ -195,4 +199,29 @@ export const CONTENT_GAPS: ContentGap[] = [
 
 export const REVIEWS: ReviewInsight[] = [
   { id: 9401, competitor_product_id: 5001, period: '2026-W21', sentiment_score: 0.72, themes: [{ theme: 'Battery life', pos: 78, neg: 12, mentions: 612 }, { theme: 'Camera quality', pos: 81, neg: 8, mentions: 540 }, { theme: 'Display brightness', pos: 88, neg: 4, mentions: 421 }, { theme: 'Build quality', pos: 71, neg: 18, mentions: 388 }, { theme: 'Software / UX', pos: 52, neg: 28, mentions: 312 }], sample_count: 2148, is_ai_generated: true, generated_at: '2026-05-24T05:00:00Z' },
+];
+
+// ---- System (A6) ----
+
+export const RULES: RepricingRule[] = [
+  { id: 6001, name: 'Beat Amazon by 2% with margin floor', strategy: 'beat_top_n', target_filter: { categories: ['Smartphones'], countries: ['IT'] }, parameters: { top_n: 3, domains_priority: ['amazon.it'], delta_pct: -2, min_margin_pct: 18, max_change_per_day_pct: 5, round_to_charm: 0.99 }, priority: 10, status: 'active' },
+  { id: 6002, name: 'Match cheapest on TV', strategy: 'match_cheapest', target_filter: { categories: ['TV & Home'], countries: ['IT'] }, parameters: { min_margin_pct: 12, max_change_per_day_pct: 8 }, priority: 20, status: 'active' },
+  { id: 6003, name: 'Undercut 5% clearance', strategy: 'undercut_pct', target_filter: { categories: ['Audio'] }, parameters: { delta_pct: -5, min_margin_pct: 10 }, priority: 30, status: 'paused' },
+];
+
+export const RULE_DECISIONS: RuleDecision[] = [
+  { id: 6101, repricing_rule_id: 6001, product_id: 1, current_price_cents: 79900, suggested_price_cents: 76900, applied: false, reason: 'beat amazon.it (€784) by 2% → €769.00 (margin floor 18% ok)' },
+  { id: 6102, repricing_rule_id: 6002, product_id: 3, current_price_cents: 129900, suggested_price_cents: 124900, applied: false, reason: 'match cheapest amazon.it €1249' },
+];
+
+export const WEBHOOKS: WebhookSubscription[] = [
+  { id: 7201, url: 'https://marginos.acme.it/webhooks/price-intel', events: ['price.changed', 'undercut.detected', 'buybox.lost', 'map.violated'], active: true, last_status: 200, last_at: '2026-05-24T11:34:18Z' },
+  { id: 7202, url: 'https://hooks.slack.com/services/T0/B0/xxx', events: ['anomaly.detected', 'map.violated'], active: true, last_status: 200, last_at: '2026-05-24T11:32:18Z' },
+  { id: 7203, url: 'https://eu.zapier.com/hooks/catch/123/abc', events: ['narrative.generated'], active: false, last_status: 410, last_at: '2026-05-24T11:30:02Z' },
+];
+
+export const API_KEYS: ApiKey[] = [
+  { id: 8301, name: 'MarginOS production', scopes: ['catalog:read', 'observations:read', 'alerts:read'], last_used_at: '2026-05-24T11:30:00Z', expires_at: null, revoked_at: null, created_at: '2026-01-12T09:00:00Z' },
+  { id: 8302, name: 'Analytics read-only', scopes: ['observations:read', 'forecasts:read'], last_used_at: '2026-05-20T08:00:00Z', expires_at: '2026-08-01T00:00:00Z', revoked_at: null, created_at: '2026-03-01T09:00:00Z' },
+  { id: 8303, name: 'Legacy import (rotate)', scopes: ['catalog:write'], last_used_at: '2026-04-02T08:00:00Z', expires_at: null, revoked_at: '2026-05-01T00:00:00Z', created_at: '2025-11-01T09:00:00Z' },
 ];

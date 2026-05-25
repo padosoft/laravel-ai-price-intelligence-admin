@@ -3,6 +3,8 @@ import { api, unwrap } from '@/lib/api/client';
 import type {
   Alert,
   Anomaly,
+  ApiKey,
+  ApiKeyCreated,
   AssortmentGap,
   CompetitorDetail,
   CompetitorListItem,
@@ -15,9 +17,13 @@ import type {
   Narrative,
   PriceObservation,
   Product,
+  RepricingRule,
   Resource,
   ReviewsPage,
+  RuleDecision,
+  SimulateResult,
   TargetStatus,
+  WebhookSubscription,
 } from '@/lib/api/types';
 
 export function useCatalog() {
@@ -174,6 +180,102 @@ export function useFetchLogs(limit?: number) {
     queryKey: ['audit', 'fetch-logs', { limit }],
     queryFn: () => api.get<CursorPage<FetchLog>>('/audit/fetch-logs', limit ? { per_page: limit } : undefined),
   });
+}
+
+// ---- System (A6) ----
+
+/** Repricing rules (advisory-only engine). */
+export function useRules() {
+  return useQuery({
+    queryKey: ['rules'],
+    queryFn: () => api.get<CursorPage<RepricingRule>>('/rules', { per_page: 100 }),
+  });
+}
+
+/** Recent repricing decisions (the rule-decisions log). */
+export function useRuleDecisions() {
+  return useQuery({
+    queryKey: ['rule-decisions'],
+    queryFn: () => api.get<CursorPage<RuleDecision>>('/rule-decisions', { per_page: 100 }),
+  });
+}
+
+/** Dry-run a rule against sample SKUs (no persistence, no webhooks). */
+export function useRuleActions() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['rules'] });
+
+  const setStatus = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: 'active' | 'paused' }) =>
+      api.patch<{ data: RepricingRule }>(`/rules/${id}`, { status }).then(unwrap),
+    onSuccess: invalidate,
+  });
+  const remove = useMutation({
+    mutationFn: (id: number) => api.delete(`/rules/${id}`),
+    onSuccess: invalidate,
+  });
+  const simulate = useMutation({
+    mutationFn: ({ id, samples }: { id: number; samples: unknown[] }) =>
+      api.post<Resource<SimulateResult>>(`/rules/${id}/simulate`, { samples }).then(unwrap),
+  });
+
+  return { setStatus, remove, simulate };
+}
+
+/** Webhook subscriptions. */
+export function useWebhooks() {
+  return useQuery({
+    queryKey: ['webhook-subscriptions'],
+    queryFn: () => api.get<CursorPage<WebhookSubscription>>('/webhook-subscriptions', { per_page: 100 }),
+  });
+}
+
+export function useWebhookActions() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['webhook-subscriptions'] });
+  const test = useMutation({
+    mutationFn: (id: number) => api.post(`/webhook-subscriptions/${id}/test`),
+  });
+  const remove = useMutation({
+    mutationFn: (id: number) => api.delete(`/webhook-subscriptions/${id}`),
+    onSuccess: invalidate,
+  });
+  return { test, remove };
+}
+
+/** API keys (admin-scoped: apikeys:manage). Pass `enabled=false` when the caller lacks the
+ * ability so the request never fires. */
+export function useApiKeys(enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['api-keys'],
+    queryFn: () => api.get<CursorPage<ApiKey>>('/api-keys', { per_page: 100 }),
+    enabled,
+  });
+}
+
+export function useApiKeyActions() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['api-keys'] });
+  const create = useMutation({
+    mutationFn: (payload: { name: string; scopes: string[] }) =>
+      api.post<Resource<ApiKeyCreated>>('/api-keys', payload).then(unwrap),
+    onSuccess: invalidate,
+  });
+  const revoke = useMutation({
+    mutationFn: (id: number) => api.delete(`/api-keys/${id}`),
+    onSuccess: invalidate,
+  });
+  return { create, revoke };
+}
+
+/** Acknowledge an alert. */
+export function useAlertActions() {
+  const qc = useQueryClient();
+  const ack = useMutation({
+    mutationFn: (id: number) => api.post(`/alerts/${id}/ack`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts'] }),
+  });
+  return { ack };
 }
 
 /**
