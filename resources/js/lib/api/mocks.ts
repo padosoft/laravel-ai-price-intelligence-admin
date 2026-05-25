@@ -394,8 +394,10 @@ export async function mockFetch<T>(
   if (anomalyAck) {
     const id = Number(anomalyAck[1]);
     const anomaly = mockAnomalies.find((a) => a.id === id);
-    if (anomaly) anomaly.acknowledged_at = new Date().toISOString();
-    return { data: anomaly ?? {} } as T;
+    // Mirror the core's findOrFail: an unknown id is a 404, not a silent 200 with {}.
+    if (!anomaly) throw new ApiError(404, null, 'HTTP 404: anomaly not found');
+    anomaly.acknowledged_at = new Date().toISOString();
+    return { data: anomaly } as T;
   }
   // Acknowledge alert
   const alertAck = method === 'POST' && path.match(/^\/alerts\/(\d+)\/ack$/);

@@ -4,7 +4,11 @@
 export type CsvCell = string | number | boolean | null | undefined;
 
 function escapeCell(v: CsvCell): string {
-  const s = v == null ? '' : String(v);
+  let s = v == null ? '' : String(v);
+  // CSV formula-injection guard: a cell starting with = + - @ (or tab/CR) can be executed as a
+  // formula by Excel/Sheets. Exports include scrape-/user-derived titles & URLs, so neutralize
+  // it by prefixing a single quote before the usual quoting.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   // Quote fields containing a comma, quote, or any newline char (LF, CR, or CRLF).
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
