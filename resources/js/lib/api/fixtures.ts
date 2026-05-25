@@ -129,3 +129,29 @@ export const PRICE_SERIES: Record<string, PriceObservation[]> = {
   'trovaprezzi.it': series(76000, -120, 1800),
   'unieuro.it': series(81000, -20, 900),
 };
+
+/** 30-day price series keyed by competitor_product_id (for Competitor Detail price tab). */
+function seriesCp(cpId: number, base: number, drift: number, amp: number): PriceObservation[] {
+  const start = new Date('2026-04-25T00:00:00Z').getTime();
+  return Array.from({ length: 30 }, (_, i) => {
+    const cents = Math.round(base + Math.sin(i / 3) * amp + i * drift);
+    return {
+      id: cpId * 100 + i,
+      competitor_product_id: cpId,
+      captured_at: new Date(start + i * 86_400_000).toISOString(),
+      price_cents: cents,
+      currency: 'EUR',
+      price_base_cents: cents,
+      shipping_cents: 0,
+      available: true,
+    };
+  });
+}
+
+export const PRICE_SERIES_BY_CP: Record<number, PriceObservation[]> = {
+  5001: seriesCp(5001, 76900, -30, 1200),
+  5002: seriesCp(5002, 78900, -10, 800),
+  5003: seriesCp(5003, 74900, -80, 1500),
+  5004: seriesCp(5004, 124900, -50, 3000),
+  5005: seriesCp(5005, 15900, 20, 400),
+};

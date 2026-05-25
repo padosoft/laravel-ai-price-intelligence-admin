@@ -7,6 +7,7 @@ import { Matches } from '@/routes/Matches';
 import { Competitors } from '@/routes/Competitors';
 import { CompetitorDetail } from '@/routes/CompetitorDetail';
 import { Prices } from '@/routes/Prices';
+import { resetMatchMocks } from '@/lib/api/mocks';
 
 function wrap(ui: React.ReactElement) {
   return render(
@@ -17,6 +18,8 @@ function wrap(ui: React.ReactElement) {
 }
 
 describe('Matches', () => {
+  beforeEach(() => resetMatchMocks());
+
   it('renders the first candidate with its evidence breakdown', async () => {
     wrap(<Matches />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Matches review' })).toBeInTheDocument());
@@ -34,6 +37,20 @@ describe('Matches', () => {
     await waitFor(() => expect(screen.getByText('Match approved')).toBeInTheDocument());
     // The deck advances to the next candidate.
     await waitFor(() => expect(screen.getByText(/AirBuds 3 Pro/)).toBeInTheDocument());
+  });
+
+  it('does not skip the next candidate after the server removes the processed item', async () => {
+    // Regression: without a local queue, refetch after approve could shift the array and
+    // cause idx+1 to land on the wrong (or missing) item.
+    const user = userEvent.setup();
+    wrap(<Matches />);
+    await waitFor(() => expect(screen.getByText(/Acme X1 Pro 5G 128GB/)).toBeInTheDocument());
+    // Mock now removes the approved proposal from subsequent GET /matches?status=pending.
+    await user.click(screen.getByRole('button', { name: /Confirm/ }));
+    await waitFor(() => expect(screen.getByText(/AirBuds 3 Pro/)).toBeInTheDocument());
+    // Approve the second item — should advance to third (Nova OLED), not skip it.
+    await user.click(screen.getByRole('button', { name: /Confirm/ }));
+    await waitFor(() => expect(screen.getAllByText(/Nova OLED/).length).toBeGreaterThan(0));
   });
 });
 

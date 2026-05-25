@@ -99,8 +99,8 @@ export function CompetitorDetail({
         </div>
         <div className="stat">
           <small>Stock</small>
-          <b style={{ color: data.latest_price?.available === false ? 'var(--status-failed)' : 'var(--status-success)' }}>
-            {data.latest_price?.available === false ? 'Out' : 'In stock'}
+          <b style={{ color: data.latest_price?.available === true ? 'var(--status-success)' : data.latest_price?.available === false ? 'var(--status-failed)' : 'var(--text-tertiary)' }}>
+            {data.latest_price?.available === true ? 'In stock' : data.latest_price?.available === false ? 'Out' : '—'}
           </b>
         </div>
         <div className="stat">
@@ -179,7 +179,7 @@ function PriceTab({ competitorId, host, ourPrice }: { competitorId: number; host
                     <td className="right">{o.price_cents != null ? <Price cents={o.price_cents} /> : '—'}</td>
                     <td className="right">{delta != null ? <PriceDelta pct={delta} /> : <span className="muted">—</span>}</td>
                     <td className="mono">{o.shipping_cents != null ? `€${(o.shipping_cents / 100).toFixed(2)}` : '—'}</td>
-                    <td><span className={`badge ${o.available === false ? 'failed' : 'success'}`} style={{ fontSize: 10 }}><span className="dot" />{o.available === false ? 'out' : 'in'}</span></td>
+                    <td><span className={`badge ${o.available === true ? 'success' : o.available === false ? 'failed' : 'pending'}`} style={{ fontSize: 10 }}><span className="dot" />{o.available === true ? 'in' : o.available === false ? 'out' : '—'}</span></td>
                   </tr>
                 );
               })}

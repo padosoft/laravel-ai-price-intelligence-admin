@@ -29,11 +29,12 @@ export function Prices() {
 
   const selected = products.find((p) => p.id === productId) ?? products[0] ?? null;
   const ourPrice = selected?.our_price_cents ?? null;
+  const selectedId = selected?.id ?? null;
 
-  const amazon = usePriceSeries('amazon.it');
-  const media = usePriceSeries('mediaworld.it');
-  const trova = usePriceSeries('trovaprezzi.it');
-  const unieuro = usePriceSeries('unieuro.it');
+  const amazon = usePriceSeries('amazon.it', selectedId, range);
+  const media = usePriceSeries('mediaworld.it', selectedId, range);
+  const trova = usePriceSeries('trovaprezzi.it', selectedId, range);
+  const unieuro = usePriceSeries('unieuro.it', selectedId, range);
   const byHost: Record<string, PriceObservation[] | undefined> = {
     'amazon.it': amazon.data?.data,
     'mediaworld.it': media.data?.data,

@@ -44,10 +44,15 @@ export function useAnomalies(limit?: number) {
   });
 }
 
-export function usePriceSeries(host: string) {
+export function usePriceSeries(host: string, productId?: number | null, range?: string) {
   return useQuery({
-    queryKey: ['observations', 'prices', host],
-    queryFn: () => api.get<CursorPage<PriceObservation>>('/observations/prices', { host }),
+    queryKey: ['observations', 'prices', host, productId ?? null, range ?? '30d'],
+    queryFn: () =>
+      api.get<CursorPage<PriceObservation>>('/observations/prices', {
+        host,
+        ...(productId != null ? { product_id: productId } : {}),
+        ...(range ? { range } : {}),
+      }),
   });
 }
 

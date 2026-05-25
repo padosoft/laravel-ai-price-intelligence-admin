@@ -5,6 +5,7 @@ import {
   COMPETITOR_LIST,
   MATCH_PROPOSALS,
   PRICE_SERIES,
+  PRICE_SERIES_BY_CP,
   PRODUCTS,
   TARGETS,
 } from './fixtures';
@@ -60,6 +61,13 @@ const STATS: DashboardStats = {
 
 type Handler = (query?: Record<string, unknown>, body?: unknown) => unknown;
 
+/**
+ * Tracks match proposal IDs that have been approved/rejected in the current mock session.
+ * Exported so tests can reset between cases.
+ */
+export const processedMatchIds = new Set<number>();
+export function resetMatchMocks(): void { processedMatchIds.clear(); }
+
 /** Registry keyed by "METHOD /path" (exact) or "METHOD /prefix/*" patterns. */
 const handlers: Record<string, Handler> = {
   'GET /tenants/me': () => ({ data: TENANT_ME }),
@@ -72,12 +80,20 @@ const handlers: Record<string, Handler> = {
   'GET /alerts': () => page(ALERTS),
   'GET /anomalies': () => page(ANOMALIES),
   'GET /observations/prices': (query) => {
+    const cpId = query?.competitor_product_id != null ? Number(query.competitor_product_id) : null;
+    if (cpId != null) {
+      return page(PRICE_SERIES_BY_CP[cpId] ?? []);
+    }
     const host = (query?.host as string | undefined) ?? 'amazon.it';
     return page(PRICE_SERIES[host] ?? PRICE_SERIES['amazon.it']);
   },
   'GET /matches': (query) => {
     const status = (query?.status as string | undefined) ?? 'pending';
-    return page(MATCH_PROPOSALS.filter((m) => m.status === status));
+    return page(
+      MATCH_PROPOSALS.filter((m) =>
+        m.status === status && (status !== 'pending' || !processedMatchIds.has(m.id)),
+      ),
+    );
   },
   'GET /competitor-products': (query) => {
     const host = query?.host as string | undefined;
@@ -140,6 +156,8 @@ export async function mockFetch<T>(
     } as T;
   }
   if (method === 'POST' && /^\/matches\/\d+\/(approve|reject)$/.test(path)) {
+    const id = Number(path.split('/')[2]);
+    processedMatchIds.add(id);
     return (path.endsWith('approve') ? { data: { match_status: 'confirmed' } } : undefined) as T;
   }
   if (method === 'POST' && /^\/rules\/\d+\/simulate$/.test(path)) {

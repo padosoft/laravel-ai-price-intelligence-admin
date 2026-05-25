@@ -11,8 +11,9 @@ import type { RouteKey } from '@/lib/types';
 const AI_METHODS = new Set(['visual', 'llm_judge']);
 
 function stockBadge(available: boolean | null | undefined): { cls: string; label: string } {
+  if (available === true) return { cls: 'success', label: 'in stock' };
   if (available === false) return { cls: 'failed', label: 'out' };
-  return { cls: 'success', label: 'in stock' };
+  return { cls: 'pending', label: '—' };
 }
 
 function vsUsPct(item: CompetitorListItem): number | null {

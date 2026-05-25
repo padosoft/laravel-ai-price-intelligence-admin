@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { I } from '@/components/ds/icons';
 import { Kbd } from '@/components/ds';
 import { Price, PriceDelta, AiBadge, ConfidenceBadge, HostChip } from '@/components/ds/pricing';
@@ -8,7 +8,7 @@ import { useMatches, useMatchActions } from '@/hooks/operate';
 import type { MatchEvidence, MatchProposal } from '@/lib/api/types';
 
 type Decision = 'approve' | 'reject';
-interface HistoryItem { id: number; action: Decision; fresh: boolean }
+interface HistoryItem { id: number; action: Decision; fresh: boolean; proposal: MatchProposal }
 
 function evidenceStatus(e: MatchEvidence): 'match' | 'nomatch' | 'skip' {
   if (e.matched === null) return 'skip';
@@ -19,26 +19,30 @@ export function Matches() {
   const { data } = useMatches('pending');
   const { approve, reject } = useMatchActions();
   const toast = useToast();
-  const stack: MatchProposal[] = useMemo(() => data?.data ?? [], [data]);
 
-  const [idx, setIdx] = useState(0);
+  // Local queue: seeded once from the first successful fetch. We never re-sync from
+  // the server so that the server removing a processed item from the pending list
+  // doesn't shift the array under an advancing idx (queue-skip bug).
+  const [localQueue, setLocalQueue] = useState<MatchProposal[]>([]);
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!seeded.current && data !== undefined) {
+      setLocalQueue(data.data ?? []);
+      seeded.current = true;
+    }
+  }, [data]);
+
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [flying, setFlying] = useState<Decision | null>(null);
-  const [tick, setTick] = useState(0);
-
-  const advance = useCallback(() => {
-    setIdx((i) => i + 1);
-    setFlying(null);
-    setTick((t) => t + 1);
-  }, []);
+  const [animKey, setAnimKey] = useState(0);
 
   const decide = useCallback(
     (action: Decision) => {
       if (flying) return;
-      const current = stack[idx];
+      const current = localQueue[0];
       if (!current) return;
       setFlying(action);
-      setHistory((h) => [...h, { id: current.id, action, fresh: true }]);
+      setHistory((h) => [...h, { id: current.id, action, fresh: true, proposal: current }]);
       setTimeout(() => setHistory((h) => h.map((x) => ({ ...x, fresh: false }))), 600);
       const mutation = action === 'approve' ? approve : reject;
       mutation.mutate(current.id, {
@@ -49,16 +53,22 @@ export function Matches() {
         body: `#${current.id} · confidence ${current.confidence}`,
         kind: action === 'approve' ? '' : 'warn',
       });
-      setTimeout(advance, 340);
+      setTimeout(() => {
+        setLocalQueue((q) => q.slice(1));
+        setFlying(null);
+        setAnimKey((k) => k + 1);
+      }, 340);
     },
-    [stack, idx, flying, advance, approve, reject, toast],
+    [localQueue, flying, approve, reject, toast],
   );
 
   const undo = useCallback(() => {
-    if (idx === 0) return;
+    if (history.length === 0) return;
+    const last = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
-    setIdx((i) => Math.max(0, i - 1));
-  }, [idx]);
+    setLocalQueue((q) => [last.proposal, ...q]);
+    setAnimKey((k) => k + 1);
+  }, [history]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -112,10 +122,11 @@ export function Matches() {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
-  }, [idx, flying, decide]);
+  }, [flying, decide]);
 
-  const current = stack[idx];
-  const total = stack.length;
+  const current = localQueue[0];
+  const total = localQueue.length + history.length;
+  const processedCount = history.length;
 
   if (!current) {
     return (
@@ -127,7 +138,7 @@ export function Matches() {
             {total > 0 ? `All ${total} match proposals processed.` : 'No proposals awaiting review.'}
           </div>
           {total > 0 && (
-            <button type="button" className="btn" style={{ marginTop: 18 }} onClick={() => { setIdx(0); setHistory([]); }}>
+            <button type="button" className="btn" style={{ marginTop: 18 }} onClick={() => { setLocalQueue(history.map((h) => h.proposal)); setHistory([]); setAnimKey((k) => k + 1); }}>
               <I.Replay size={12} /> Start over
             </button>
           )}
@@ -140,8 +151,8 @@ export function Matches() {
   const our = product?.our_price_cents ?? null;
   const cand = current.candidate_price_cents;
   const deltaPct = our != null && our !== 0 && cand != null ? ((cand - our) / our) * 100 : null;
-  const next1 = stack[idx + 1];
-  const next2 = stack[idx + 2];
+  const next1 = localQueue[1];
+  const next2 = localQueue[2];
   const evidence = current.evidence ?? [];
 
   return (
@@ -157,7 +168,7 @@ export function Matches() {
           <span className="muted" style={{ fontSize: 12, marginRight: 12 }}>
             <Kbd>A</Kbd> approve · <Kbd>R</Kbd> reject · <Kbd>U</Kbd> undo · drag to swipe
           </span>
-          <button type="button" className="btn sm" onClick={undo} disabled={idx === 0}>
+          <button type="button" className="btn sm" onClick={undo} disabled={history.length === 0}>
             <I.Replay size={11} /> Undo
           </button>
         </div>
@@ -165,9 +176,9 @@ export function Matches() {
 
       <div className="queue-strip">
         <span className="queue-counter">
-          <b>{idx + 1}</b> of {total} <span>· {total - idx} remaining</span>
+          <b>{processedCount + 1}</b> of {total} <span>· {localQueue.length} remaining</span>
         </span>
-        <div className="queue-progress"><i style={{ width: `${(idx / total) * 100}%`, transition: 'width 320ms' }} /></div>
+        <div className="queue-progress"><i style={{ width: `${total > 0 ? (processedCount / total) * 100 : 0}%`, transition: 'width 320ms' }} /></div>
         <div style={{ display: 'flex', gap: 14, fontSize: 11.5, alignItems: 'center' }}>
           <span><b className="mono" style={{ color: 'var(--status-success)' }}>{history.filter((h) => h.action === 'approve').length}</b> <span className="muted">approved</span></span>
           <span><b className="mono" style={{ color: 'var(--status-failed)' }}>{history.filter((h) => h.action === 'reject').length}</b> <span className="muted">rejected</span></span>
@@ -215,7 +226,7 @@ export function Matches() {
           {next1 && <div className="match-ghost g1" />}
           <div
             ref={dragRef}
-            key={`${current.id}-${tick}`}
+            key={`${current.id}-${animKey}`}
             className={`match-pane candidate ${flying ? 'flying-' + (flying === 'approve' ? 'right' : 'left') : 'incoming'}`}
             style={{ position: 'relative' }}
           >
