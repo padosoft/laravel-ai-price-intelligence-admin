@@ -127,7 +127,7 @@ function AppContent() {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onNavigate={navigate}
-        onOpenCompetitor={() => navigate('competitor_detail')}
+        onOpenCompetitor={(id) => navigate('competitor_detail', { competitorId: Number(id) })}
         features={features}
       />
       <TenantSwitcher open={tenantOpen} onClose={() => setTenantOpen(false)} tenants={DEMO_TENANTS} />

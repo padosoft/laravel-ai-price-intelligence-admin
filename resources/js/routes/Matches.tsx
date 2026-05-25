@@ -120,8 +120,9 @@ export function Matches() {
     if (!card) return;
     const onDown = (e: PointerEvent) => {
       if (flying) return;
-      const tag = (e.target as HTMLElement).tagName;
-      if (['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA', 'KBD'].includes(tag)) return;
+      // Don't start a drag when the press lands on (or inside) an interactive control —
+      // closest() catches clicks on an icon/text child of the Reject/Open/Confirm buttons.
+      if ((e.target as HTMLElement).closest('button, a, input, select, textarea, kbd')) return;
       dragState.current = { dragging: true, startX: e.clientX, dx: 0 };
       card.style.transition = 'none';
     };
