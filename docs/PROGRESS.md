@@ -22,6 +22,36 @@ match candidate metadata, released 2026-05-25).
 
 All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+axe) green.
 
+## B-phase roadmap (admin) — consumes core v1.5.0
+> The CORE B-phases are DONE and released: **v1.3.0** (LLM layer), **v1.4.0** (marketplace API
+> adapters), **v1.5.0** (API gaps + enterprise scale: observations host filter + stock/promo history,
+> `GET /ai-decisions`, `/facets/hosts`+`/facets/categories`, streamed CSV export `:export`,
+> `PATCH /tenants/me/settings`, daily aggregates). Core dep bumped here to **^1.5**.
+- [x] **(prep)** bump `padosoft/laravel-ai-price-intelligence` → `^1.5` in composer.json.
+- [ ] **B4** — real test harness: a Testbench/Sail app mounting the core + DB (migrate + realistic
+  seed) exposing the live API; Playwright **integration** project against it (alongside the mock
+  project) + **visual-regression** baselines (`toHaveScreenshot`) on key screens; CI wiring.
+- [ ] **B5** — wire placeholder actions/forms: New target/SKU/repricing-rule/webhook; Import CSV;
+  Add-by-URL; Trigger discovery; **Export** CSV/PDF/digest (consumes `:export`); Compliance
+  risk-register/attestation; **Settings write** (consumes `PATCH /tenants/me/settings`). Validated,
+  optimistic+rollback, integration-tested. No dead buttons remain.
+- [ ] **B6** — enterprise UX (500k SKU): infinite-scroll/cursor pagination on every list; table
+  **virtualization** (`@tanstack/react-virtual`); Competitors **host-count chips** (`/facets/hosts`);
+  **AI-decision-log viewer** in Compliance (`GET /ai-decisions`).
+- [ ] **B7** — SSE **bearer/polling fallback**: interval refetch of `['alerts']` when EventSource is
+  unavailable (bearer/headless); keep cookie-mode SSE primary; both tested.
+- [ ] **B8** — release hygiene: admin **CHANGELOG.md**, deploy + user/admin guides, consolidate
+  B-phase lessons into AGENTS.md/.claude/rules; tag admin **v1.1.0** + release.
+
+### Next action (B4)
+On `feat/admin-b4-test-harness`: after `composer update` to pull core ^1.5, build a Testbench test
+app that registers BOTH `PriceIntelligenceServiceProvider` and this panel's provider, migrates the
+core schema into a real (sqlite/mysql) DB, seeds realistic catalog+competitor+observation data, and
+serves `/api/v1`. Add a Playwright **integration** project (separate from the mock project) that runs
+the SPA against that live API, plus `toHaveScreenshot` visual-regression baselines on Dashboard /
+Competitors / Matches / Compliance. Wire both into CI. Spec: core
+`docs/superpowers/specs/2026-05-25-b-phases-design.md` §B4. Strict per-phase loop (AGENTS.md).
+
 ## Superseded A1-era notes (kept for history)
 - [x] **A0 — Repo scaffold + tooling** (PR #1 merged): full PHP+JS toolchain, CI 5 jobs green,
   EnsureAdmin (Gate-only, auth:sanctum), PanelController (manifest→assets cached), boot tests.
