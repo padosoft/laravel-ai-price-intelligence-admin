@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { apiBase, runtimeConfig } from '@/config';
+import { runtimeConfig } from '@/config';
 import type { Alert, CursorPage } from '@/lib/api/types';
 import { AlertStreamContext } from './alert-stream-context';
 
@@ -25,7 +25,10 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supported) return;
-    const es = new EventSource(`${apiBase}/alerts/stream`, { withCredentials: true });
+    // Build the URL inside the effect from the (module-level, non-reactive) config so there's
+    // no outer-scope local to add to the dependency array.
+    const url = `${runtimeConfig.apiBaseUrl.replace(/\/+$/, '')}/alerts/stream`;
+    const es = new EventSource(url, { withCredentials: true });
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false); // EventSource retries automatically
     es.onmessage = (ev: MessageEvent<string>) => {
@@ -43,8 +46,6 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
       }
     };
     return () => { es.close(); setConnected(false); };
-    // apiBase is a module-level constant (not reactive), so it is intentionally not a dep —
-    // react-hooks/exhaustive-deps rejects it as an unnecessary dependency.
   }, [supported, qc]);
 
   return <AlertStreamContext.Provider value={{ connected, supported }}>{children}</AlertStreamContext.Provider>;
