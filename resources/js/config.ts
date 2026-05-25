@@ -18,10 +18,20 @@ declare global {
 const fallback: AdminRuntimeConfig = {
   apiBaseUrl: '/api/v1',
   auth: { mode: 'cookie' },
-  locale: 'it',
+  // Dev/demo default; the host injects the tenant's locale via window.__PI_ADMIN__.
+  // English-first here so the standalone demo matches the prototype copy.
+  locale: 'en',
   csrfCookie: 'XSRF-TOKEN',
   realtime: { driver: 'sse' },
   useMocks: true,
 };
 
 export const runtimeConfig: AdminRuntimeConfig = window.__PI_ADMIN__ ?? fallback;
+
+/** API base with any trailing slash removed, so `${apiBase}/path` never double-slashes. */
+export const apiBase = runtimeConfig.apiBaseUrl.replace(/\/+$/, '');
+
+/** Absolute URL of the SSE alert stream (single source of truth for the realtime layer). */
+export function alertStreamUrl(): string {
+  return `${apiBase}/alerts/stream`;
+}

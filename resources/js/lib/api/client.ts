@@ -1,4 +1,4 @@
-import { runtimeConfig } from '@/config';
+import { apiBase, runtimeConfig } from '@/config';
 import type { ProblemDetails } from './types';
 import { mockFetch } from './mocks';
 import { getBearerToken } from './token';
@@ -16,8 +16,7 @@ interface RequestOptions {
 }
 
 function buildUrl(path: string, query?: Query): string {
-  const base = runtimeConfig.apiBaseUrl.replace(/\/$/, '');
-  const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  const url = `${apiBase}${path.startsWith('/') ? path : `/${path}`}`;
   if (!query) return url;
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(query)) {

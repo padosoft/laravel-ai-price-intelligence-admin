@@ -13,7 +13,7 @@ export function isFeatureVisible(features: TenantFeatures | undefined, feature?:
 /** Sidebar navigation groups (ported from shell.jsx NAV_GROUPS). */
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Operate',
+    key: 'operate', label: 'Operate',
     items: [
       { key: 'dashboard', label: 'Dashboard', icon: 'Home' },
       { key: 'catalog', label: 'Catalog', icon: 'Box' },
@@ -24,7 +24,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Intelligence',
+    key: 'intelligence', label: 'Intelligence',
     items: [
       { key: 'anomalies', label: 'Anomalies', icon: 'Anomaly', badgeKey: 'anomalies' },
       { key: 'forecasts', label: 'Forecasts', icon: 'TrendUp' },
@@ -35,11 +35,11 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Pricing',
+    key: 'pricing', label: 'Pricing',
     items: [{ key: 'repricer', label: 'Repricer', icon: 'Wrench', feature: 'repricer' }],
   },
   {
-    label: 'System',
+    key: 'system', label: 'System',
     items: [
       { key: 'alerts', label: 'Alerts', icon: 'Bell', badgeKey: 'alerts' },
       { key: 'webhooks', label: 'Webhooks', icon: 'Webhook' },

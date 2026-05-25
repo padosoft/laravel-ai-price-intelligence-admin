@@ -8,6 +8,7 @@ import { ToastProvider } from '@/components/ds';
 import { createQueryClient } from '@/lib/api/queryClient';
 import { AuthProvider } from '@/state/AuthProvider';
 import { useAuth } from '@/state/auth-context';
+import { AlertStreamProvider } from '@/lib/realtime/AlertStreamProvider';
 import { useStats } from '@/hooks/useStats';
 import '@/lib/i18n';
 import type { NavCounts, RouteKey, Tenant, TenantFeatures, Theme, User } from '@/lib/types';
@@ -141,9 +142,11 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ToastProvider>
-          <AppContent />
-        </ToastProvider>
+        <AlertStreamProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </AlertStreamProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

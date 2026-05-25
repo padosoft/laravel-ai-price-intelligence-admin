@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 import { I } from '@/components/ds/icons';
 import { fmtTime } from '@/lib/format';
 import type { RouteKey, Tenant, Theme } from '@/lib/types';
@@ -30,6 +31,8 @@ export function Topbar({
   alertCount,
   tenant,
 }: TopbarProps) {
+  const { i18n } = useTranslation();
+  const lang = i18n.language.startsWith('it') ? 'it' : 'en';
   const crumbs = ROUTE_TITLES[route] ?? [route];
 
   return (
@@ -106,6 +109,16 @@ export function Topbar({
             }}
           />
         )}
+      </button>
+      <button
+        type="button"
+        className="iconbtn"
+        onClick={() => void i18n.changeLanguage(lang === 'it' ? 'en' : 'it')}
+        title={`Language: ${lang.toUpperCase()} — switch to ${lang === 'it' ? 'English' : 'Italiano'}`}
+        aria-label={`Switch language (current: ${lang.toUpperCase()})`}
+        style={{ width: 'auto', padding: '0 8px', fontSize: 11, fontWeight: 600 }}
+      >
+        {lang.toUpperCase()}
       </button>
       <button
         type="button"

@@ -64,6 +64,8 @@ export interface NavItem {
 }
 
 export interface NavGroup {
+  /** Stable i18n key (groups.*), decoupled from the display label. */
+  key: string;
   label: string;
   items: NavItem[];
 }

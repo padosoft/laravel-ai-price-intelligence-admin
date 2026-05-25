@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it" data-theme="dark">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,7 +12,9 @@
       window.__PI_ADMIN__ = window.__PI_ADMIN__ || {
         apiBaseUrl: '/api/v1',
         auth: { mode: 'cookie' },
-        locale: 'it',
+        // English-first for the standalone demo (matches the prototype copy); the host
+        // injects the tenant's locale in production. Toggle IT/EN from the topbar.
+        locale: 'en',
         csrfCookie: 'XSRF-TOKEN',
         realtime: { driver: 'sse' },
         useMocks: true,
