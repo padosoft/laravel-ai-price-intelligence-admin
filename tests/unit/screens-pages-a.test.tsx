@@ -1,11 +1,17 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { beforeEach } from 'vitest';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient } from '@/lib/api/queryClient';
+import { resetMockState } from '@/lib/api/mocks';
 import { ToastProvider } from '@/components/ds';
 import { Dashboard } from '@/routes/Dashboard';
 import { Catalog } from '@/routes/Catalog';
 import { Targets } from '@/routes/Targets';
+
+// Targets/Catalog mocks are now stateful (create pushes into in-memory collections); reset
+// before each test so a created row in one case can't leak into another.
+beforeEach(() => resetMockState());
 
 function wrap(ui: React.ReactElement) {
   return render(
@@ -65,5 +71,26 @@ describe('Targets', () => {
     const firstRow = screen.getAllByText(/Product #/)[0].closest('tr') as HTMLElement;
     await user.click(within(firstRow).getByRole('button', { name: 'Pause' }));
     await waitFor(() => expect(screen.getByText('Target paused')).toBeInTheDocument());
+  });
+
+  it('creates a new target via the modal (POST /targets)', async () => {
+    const user = userEvent.setup();
+    wrap(<Targets />);
+    await waitFor(() => expect(screen.getAllByText(/Product #/).length).toBeGreaterThan(0));
+    // Count data rows via the table (toast bodies also contain "Product #", so don't count text).
+    const rowCount = () => within(screen.getByRole('table')).getAllByRole('row').length;
+    const before = rowCount();
+    await user.click(screen.getByRole('button', { name: /New target/ }));
+    // Modal opens; the Create button is disabled until a product is chosen.
+    const dialog = screen.getByRole('dialog');
+    const create = within(dialog).getByRole('button', { name: /Create target/ });
+    expect(create).toBeDisabled();
+    // Country defaults to "IT"; choosing a product is all that's needed to enable submit.
+    await user.selectOptions(within(dialog).getByLabelText('Product'), 'Acme X1 Pro 128GB Smartphone');
+    expect(create).toBeEnabled();
+    await user.click(create);
+    await waitFor(() => expect(screen.getByText('Target created')).toBeInTheDocument());
+    // Server-reflected list grows by one (optimistic row replaced by the refetch).
+    await waitFor(() => expect(rowCount()).toBe(before + 1));
   });
 });

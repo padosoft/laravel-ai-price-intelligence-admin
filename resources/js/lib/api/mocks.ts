@@ -93,9 +93,13 @@ let mockAlerts = ALERTS.map((a) => ({ ...a }));
 let mockRules = RULES.map((r) => ({ ...r }));
 let mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
 let mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+let mockTargets = TARGETS.map((t) => ({ ...t }));
 let mockTenantSettings: TenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
 let apiKeySeq = 90000;
 function nextApiKeyId(): number { return ++apiKeySeq; }
+let resourceSeq = 800000;
+/** Monotonic id for newly created mock resources (targets/rules/webhooks/competitor-products). */
+function nextResourceId(): number { return ++resourceSeq; }
 
 export function resetMockState(): void {
   processedMatchIds.clear();
@@ -103,8 +107,10 @@ export function resetMockState(): void {
   mockRules = RULES.map((r) => ({ ...r }));
   mockWebhooks = WEBHOOKS.map((w) => ({ ...w }));
   mockApiKeys = API_KEYS.map((k) => ({ ...k }));
+  mockTargets = TARGETS.map((t) => ({ ...t }));
   mockTenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
   apiKeySeq = 90000;
+  resourceSeq = 800000;
 }
 
 /** Registry keyed by "METHOD /path" (exact) or "METHOD /prefix/*" patterns. */
@@ -122,7 +128,23 @@ const handlers: Record<string, Handler> = {
   'GET /catalog/products': () => page(PRODUCTS),
   'GET /targets': (query) => {
     const status = query?.status as string | undefined;
-    return page(status ? TARGETS.filter((t) => t.status === status) : TARGETS);
+    return page(status ? mockTargets.filter((t) => t.status === status) : mockTargets);
+  },
+  'POST /targets': (_query, body) => {
+    const b = (body ?? {}) as { product_id?: number; country?: string; frequency?: string; priority?: number };
+    const target = {
+      id: nextResourceId(),
+      product_id: b.product_id ?? 0,
+      country: (b.country ?? 'IT').toUpperCase(),
+      locale: null,
+      frequency_preset: b.frequency ?? 'daily',
+      status: 'active' as const,
+      priority: b.priority ?? 100,
+      last_check_at: null,
+      next_check_at: new Date().toISOString(),
+    };
+    mockTargets = [target, ...mockTargets];
+    return { data: target };
   },
   'GET /alerts': () => page(mockAlerts),
   'GET /anomalies': () => page(ANOMALIES),

@@ -1,20 +1,40 @@
 import { useState } from 'react';
 import { I } from '@/components/ds/icons';
 import { Flag } from '@/components/ds/pricing';
-import { useToast } from '@/components/ds';
-import { useTargets, useTargetActions } from '@/hooks/operate';
+import { Modal, useToast } from '@/components/ds';
+import { useCatalog, useTargets, useTargetActions } from '@/hooks/operate';
 import { fmtNum } from '@/lib/format';
 import type { TargetStatus } from '@/lib/api/types';
 
 const STATUS_BADGE: Record<TargetStatus, string> = { active: 'success', paused: 'paused', stopped: 'failed' };
 const FILTERS: Array<TargetStatus | 'all'> = ['all', 'active', 'paused', 'stopped'];
+const FREQUENCIES = ['hourly', '4h', 'daily', 'weekly'];
 
 export function Targets() {
   const [status, setStatus] = useState<TargetStatus | 'all'>('all');
   const { data, isLoading } = useTargets(status);
-  const { scrapeNow, setStatus: setTargetStatus } = useTargetActions();
+  const { scrapeNow, setStatus: setTargetStatus, create } = useTargetActions();
+  const catalog = useCatalog();
+  const products = catalog.data?.data ?? [];
   const toast = useToast();
   const targets = data?.data ?? [];
+
+  const [open, setOpen] = useState(false);
+  const [productId, setProductId] = useState<number | ''>('');
+  const [country, setCountry] = useState('IT');
+  const [frequency, setFrequency] = useState('daily');
+  const resetForm = () => { setProductId(''); setCountry('IT'); setFrequency('daily'); };
+
+  const submit = () => {
+    if (productId === '' || country.trim().length !== 2) return;
+    create.mutate(
+      { product_id: Number(productId), country: country.trim().toUpperCase(), frequency },
+      {
+        onSuccess: () => { toast.push({ title: 'Target created', body: `Product #${productId} · ${country.toUpperCase()}` }); setOpen(false); resetForm(); },
+        onError: () => toast.push({ title: 'Could not create target', kind: 'error' }),
+      },
+    );
+  };
 
   const onScrape = (id: number) =>
     scrapeNow.mutate(id, {
@@ -41,11 +61,44 @@ export function Targets() {
           <p className="page-sub">{fmtNum(targets.length)} targets · adaptive backoff reduces scrape load on stable prices.</p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn primary">
+          <button type="button" className="btn primary" onClick={() => setOpen(true)}>
             <I.Plus size={13} /> New target
           </button>
         </div>
       </div>
+
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="New monitoring target"
+        sub="Track a catalog SKU in a given market. Discovery runs on the configured cadence."
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setOpen(false)}>Cancel</button>
+            <button type="button" className="btn primary" disabled={productId === '' || country.trim().length !== 2 || create.isPending} onClick={submit}>
+              {create.isPending ? 'Creating…' : 'Create target'}
+            </button>
+          </>
+        }
+      >
+        <div className="form-row">
+          <label htmlFor="nt-product">Product</label>
+          <select id="nt-product" className="select" value={productId} onChange={(e) => setProductId(e.target.value === '' ? '' : Number(e.target.value))}>
+            <option value="">Select a product…</option>
+            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div className="form-row">
+          <label htmlFor="nt-country">Country (ISO-2)</label>
+          <input id="nt-country" className="input" maxLength={2} value={country} onChange={(e) => setCountry(e.target.value.toUpperCase())} placeholder="IT" />
+        </div>
+        <div className="form-row">
+          <label htmlFor="nt-frequency">Frequency</label>
+          <select id="nt-frequency" className="select" value={frequency} onChange={(e) => setFrequency(e.target.value)}>
+            {FREQUENCIES.map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+        </div>
+      </Modal>
 
       <div className="filter-bar">
         {FILTERS.map((f) => (

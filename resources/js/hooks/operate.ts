@@ -28,6 +28,41 @@ import type {
   WebhookSubscription,
 } from '@/lib/api/types';
 
+/**
+ * Shared optimistic "create into a list" mutation. Prepends a temporary row to every cached
+ * cursor-page whose key matches `prefix` (so parameterized lists like `['targets', status]`
+ * all update), snapshots them for rollback on error, and re-syncs from the server on settle.
+ * The temp row gets a negative id so it never collides with a real one and is trivially
+ * distinguishable while in flight.
+ */
+function useOptimisticCreate<TVars, TItem, TResult>(
+  prefix: readonly unknown[],
+  mutationFn: (vars: TVars) => Promise<TResult>,
+  buildTemp: (vars: TVars) => TItem,
+) {
+  const qc = useQueryClient();
+  return useMutation<TResult, unknown, TVars, { snapshots: Array<[readonly unknown[], CursorPage<TItem> | undefined]> }>({
+    mutationFn,
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: prefix });
+      const snapshots = qc.getQueriesData<CursorPage<TItem>>({ queryKey: prefix }) as Array<[readonly unknown[], CursorPage<TItem> | undefined]>;
+      const temp = buildTemp(vars);
+      qc.setQueriesData<CursorPage<TItem>>({ queryKey: prefix }, (old) =>
+        old ? { ...old, data: [temp, ...old.data] } : old,
+      );
+      return { snapshots };
+    },
+    onError: (_e, _v, ctx) => {
+      ctx?.snapshots.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: prefix }),
+  });
+}
+
+/** Monotonic source of negative ids for optimistic temp rows (never collides with server ids). */
+let tempIdSeq = -1;
+function nextTempId(): number { return tempIdSeq--; }
+
 export function useCatalog() {
   return useQuery({
     queryKey: ['catalog', 'products'],
@@ -285,6 +320,14 @@ export function useAlertActions() {
  * synchronously, so it doesn't invalidate); `setStatus` mutates the row and invalidates
  * the targets list on success.
  */
+/** Payload for creating a monitoring target (POST /targets). */
+export interface NewTargetInput {
+  product_id: number;
+  country: string;
+  frequency?: string;
+  priority?: number;
+}
+
 export function useTargetActions() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ['targets'] });
@@ -299,7 +342,23 @@ export function useTargetActions() {
     onSuccess: invalidate,
   });
 
-  return { scrapeNow, setStatus };
+  const create = useOptimisticCreate<NewTargetInput, MonitoringTarget, { data: MonitoringTarget }>(
+    ['targets'],
+    (input) => api.post<{ data: MonitoringTarget }>('/targets', input),
+    (input) => ({
+      id: nextTempId(),
+      product_id: input.product_id,
+      country: input.country.toUpperCase(),
+      locale: null,
+      frequency_preset: input.frequency ?? 'daily',
+      status: 'active',
+      priority: input.priority ?? 100,
+      last_check_at: null,
+      next_check_at: null,
+    }),
+  );
+
+  return { scrapeNow, setStatus, create };
 }
 
 /**
