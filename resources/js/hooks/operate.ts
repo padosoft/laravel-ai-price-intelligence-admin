@@ -19,6 +19,7 @@ import type {
   PriceObservation,
   Product,
   RepricingRule,
+  RuleStrategy,
   Resource,
   ReviewsPage,
   RuleDecision,
@@ -330,9 +331,30 @@ export function useRuleDecisions() {
 }
 
 /** Dry-run a rule against sample SKUs (no persistence, no webhooks). */
+/** Payload for creating a repricing rule (POST /rules). */
+export interface NewRuleInput {
+  name: string;
+  strategy: RuleStrategy;
+  priority?: number;
+}
+
 export function useRuleActions() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ['rules'] });
+
+  const create = useOptimisticCreate<NewRuleInput, RepricingRule, { data: RepricingRule }>(
+    ['rules'],
+    (input) => api.post<{ data: RepricingRule }>('/rules', input),
+    (input) => ({
+      id: nextTempId(),
+      name: input.name,
+      target_filter: null,
+      strategy: input.strategy,
+      parameters: {},
+      priority: input.priority ?? 100,
+      status: 'active',
+    }),
+  );
 
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: 'active' | 'paused' }) =>
@@ -348,7 +370,7 @@ export function useRuleActions() {
       api.post<Resource<SimulateResult>>(`/rules/${id}/simulate`, { samples }).then(unwrap),
   });
 
-  return { setStatus, remove, simulate };
+  return { create, setStatus, remove, simulate };
 }
 
 /** Webhook subscriptions. */

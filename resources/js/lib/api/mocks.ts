@@ -1,5 +1,5 @@
 import { ApiError } from './errors';
-import type { CursorPage, DashboardStats, TenantMe, TenantSettings } from './types';
+import type { CursorPage, DashboardStats, RepricingRule, TenantMe, TenantSettings } from './types';
 import {
   ALERTS,
   ANOMALIES,
@@ -193,6 +193,20 @@ const handlers: Record<string, Handler> = {
     );
   },
   'GET /rules': () => page(mockRules),
+  'POST /rules': (_query, body) => {
+    const b = (body ?? {}) as { name?: string; strategy?: string; priority?: number };
+    const rule = {
+      id: nextResourceId(),
+      name: b.name ?? 'New rule',
+      target_filter: null,
+      strategy: (b.strategy ?? 'undercut_pct') as RepricingRule['strategy'],
+      parameters: {},
+      priority: b.priority ?? 100,
+      status: 'active' as const,
+    };
+    mockRules = [rule, ...mockRules];
+    return { data: rule };
+  },
   'GET /rule-decisions': () => page(RULE_DECISIONS),
   'GET /webhook-subscriptions': () => page(mockWebhooks),
   'GET /api-keys': () => page(mockApiKeys),

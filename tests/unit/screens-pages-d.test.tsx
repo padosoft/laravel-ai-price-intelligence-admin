@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach } from 'vitest';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -35,6 +35,22 @@ describe('Repricer', () => {
     // The selected rule's name renders as the detail card heading (also appears in the list button).
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Beat Amazon by 2% with margin floor' })).toBeInTheDocument());
     expect(screen.getByRole('heading', { name: 'Recent decisions' })).toBeInTheDocument();
+  });
+
+  it('creates a new rule via the modal (POST /rules)', async () => {
+    const user = userEvent.setup();
+    wrap(<Repricer />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Repricer rules' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /New rule/ }));
+    const dialog = screen.getByRole('dialog');
+    const create = within(dialog).getByRole('button', { name: /Create rule/ });
+    expect(create).toBeDisabled();
+    await user.type(within(dialog).getByLabelText('Name'), 'Undercut Trovaprezzi 1%');
+    expect(create).toBeEnabled();
+    await user.click(create);
+    await waitFor(() => expect(screen.getByText('Rule created')).toBeInTheDocument());
+    // The new rule shows up in the list (and, being prepended, also as the auto-selected detail).
+    await waitFor(() => expect(screen.getAllByText('Undercut Trovaprezzi 1%').length).toBeGreaterThan(0));
   });
 });
 
