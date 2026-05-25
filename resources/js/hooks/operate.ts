@@ -243,11 +243,13 @@ export function useWebhookActions() {
   return { test, remove };
 }
 
-/** API keys (admin-scoped: apikeys:manage). */
-export function useApiKeys() {
+/** API keys (admin-scoped: apikeys:manage). Pass `enabled=false` when the caller lacks the
+ * ability so the request never fires. */
+export function useApiKeys(enabled: boolean = true) {
   return useQuery({
     queryKey: ['api-keys'],
     queryFn: () => api.get<CursorPage<ApiKey>>('/api-keys', { per_page: 100 }),
+    enabled,
   });
 }
 

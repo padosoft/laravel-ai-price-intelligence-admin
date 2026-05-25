@@ -12,7 +12,7 @@ function fmtDate(s: string | null): string {
 
 export function ApiKeys() {
   const canManage = useAbility('apikeys:manage');
-  const { data, isLoading } = useApiKeys();
+  const { data, isLoading } = useApiKeys(canManage);
   const keys = useMemo(() => data?.data ?? [], [data]);
   const { create, revoke } = useApiKeyActions();
   const toast = useToast();

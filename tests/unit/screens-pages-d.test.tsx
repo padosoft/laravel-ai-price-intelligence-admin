@@ -1,9 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { beforeEach } from 'vitest';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient } from '@/lib/api/queryClient';
+import { resetMockState } from '@/lib/api/mocks';
 import { ToastProvider } from '@/components/ds';
 import { AuthProvider } from '@/state/AuthProvider';
+
+// The A6 mocks are stateful (generate/revoke/test mutate in-memory collections); reset
+// before each test so a generated key in one case can't leak into another.
+beforeEach(() => resetMockState());
 import { Repricer } from '@/routes/Repricer';
 import { Alerts } from '@/routes/Alerts';
 import { Webhooks } from '@/routes/Webhooks';
@@ -36,8 +42,12 @@ describe('Alerts', () => {
     const user = userEvent.setup();
     wrap(<Alerts />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Alerts inbox' })).toBeInTheDocument());
+    // Show all (ack filter) first so both high and low alerts are visible.
     await user.click(screen.getByRole('button', { name: /^all$/ }));
-    await waitFor(() => expect(screen.getAllByText(/ago|UTC|:/).length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getByText('undercut.detected')).toBeInTheDocument());
+    // Filter to low severity → the high-severity undercut alert disappears.
+    await user.click(screen.getByRole('button', { name: /^low/ }));
+    await waitFor(() => expect(screen.queryByText('undercut.detected')).not.toBeInTheDocument());
   });
 });
 
