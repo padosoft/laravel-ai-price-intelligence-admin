@@ -6,14 +6,14 @@ import { useAiDecisions, useFetchLogs, printDocument } from '@/hooks/operate';
 
 export function Compliance() {
   const { hasFeature } = useAuth();
+  const aiAct = hasFeature('ai_act');
+  const pii = hasFeature('pii');
   const logs = useFetchLogs(20);
-  const decisions = useAiDecisions(undefined, 25);
+  // The decision-log endpoint is part of the ai_act module — only query it when enabled.
+  const decisions = useAiDecisions(undefined, 25, aiAct);
   const decisionRows = decisions.data?.data ?? [];
   const toast = useToast();
   const exportAttestation = () => { toast.push({ title: 'Preparing attestation', body: 'Opening the print dialog…' }); printDocument(); };
-
-  const aiAct = hasFeature('ai_act');
-  const pii = hasFeature('pii');
 
   const checks: Array<{ check: string; ok: boolean; detail: string }> = [
     { check: 'Art. 50 transparency — AI output carries an [AI] badge', ok: true, detail: 'All AI-generated content is flagged in the UI.' },
@@ -110,6 +110,9 @@ export function Compliance() {
           <span className="muted" style={{ fontSize: 11 }}>newest {decisionRows.length}</span>
         </div>
         <div className="card-body flush">
+          {!aiAct ? (
+            <div className="empty">The EU AI Act module (ai_act) is not enabled for this tenant — decision logging is off.</div>
+          ) : (
           <div className="table-wrap">
             <table className="tbl">
               <thead>
@@ -145,6 +148,7 @@ export function Compliance() {
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
     </div>

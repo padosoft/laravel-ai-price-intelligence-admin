@@ -51,17 +51,19 @@ export function VirtualTable<T>({
   const totalSize = virtualizer.getTotalSize();
   const padTop = items.length > 0 ? items[0].start : 0;
   const padBottom = items.length > 0 ? totalSize - items[items.length - 1].end : 0;
-  const lastIndex = items.length > 0 ? items[items.length - 1].index : 0;
+  // -1 when no window is measured, so the prefetch effect never fires off a non-scroll render.
+  const lastIndex = items.length > 0 ? items[items.length - 1].index : -1;
   // When the scroll viewport isn't measurable (jsdom/SSR — no layout), the virtualizer yields no
   // window; render all rows so content is never lost. Real browsers always measure a viewport.
   const virtualized = items.length > 0;
 
-  // Prefetch the next page once the last rendered row is in (or near) view.
+  // Prefetch the next page once the last *rendered* (virtual) row is in/near view. Gated on a
+  // real virtual window so it's driven by scroll position, not an unmeasured render.
   useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage && rows.length > 0 && lastIndex >= rows.length - 1) {
+    if (hasNextPage && !isFetchingNextPage && items.length > 0 && lastIndex >= rows.length - 1) {
       onLoadMore?.();
     }
-  }, [lastIndex, hasNextPage, isFetchingNextPage, rows.length, onLoadMore]);
+  }, [lastIndex, items.length, hasNextPage, isFetchingNextPage, rows.length, onLoadMore]);
 
   return (
     <div ref={parentRef} className="table-wrap" style={{ maxHeight, overflow: 'auto' }} data-testid={testId}>

@@ -139,6 +139,25 @@ describe('Compliance', () => {
     expect(screen.getByText('content_gap')).toBeInTheDocument();
   });
 
+  it('hides the AI decision log when the ai_act module is off', () => {
+    const off: AuthState = {
+      isLoading: false,
+      isError: false,
+      me: null,
+      hasFeature: (f: string) => f !== 'ai_act',
+      hasAbility: () => true,
+    };
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <AuthContext.Provider value={off}>
+          <ToastProvider><Compliance /></ToastProvider>
+        </AuthContext.Provider>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText(/ai_act\) is not enabled/)).toBeInTheDocument();
+    expect(screen.queryByText('visual_match')).not.toBeInTheDocument();
+  });
+
   it('exports the attestation via the print dialog', async () => {
     const user = userEvent.setup();
     const printSpy = vi.fn();

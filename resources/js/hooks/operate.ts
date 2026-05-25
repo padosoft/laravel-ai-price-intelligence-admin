@@ -126,8 +126,10 @@ export function useCatalogInfinite(brand?: string) {
         ...(brand && brand !== 'all' ? { brand } : {}),
         ...(pageParam ? { cursor: pageParam } : {}),
       }),
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) => last.next_cursor,
+    initialPageParam: undefined as string | undefined,
+    // Map the core's `next_cursor: null` (last page) to `undefined` so hasNextPage goes false —
+    // returning null would keep it truthy and loop fetchNextPage on the first page.
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
   });
 }
 
@@ -281,8 +283,9 @@ export function useCompetitorsInfinite(host?: string) {
         ...(host ? { host } : {}),
         ...(pageParam ? { cursor: pageParam } : {}),
       }),
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) => last.next_cursor,
+    initialPageParam: undefined as string | undefined,
+    // `null` (last page) → `undefined` so hasNextPage goes false (see useCatalogInfinite).
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
   });
 }
 
@@ -413,8 +416,9 @@ export function useReviews(period?: string) {
 }
 
 /** EU AI Act decision log (Compliance screen), cursor-paginated, newest first. Optionally
- * filtered by feature. */
-export function useAiDecisions(feature?: string, limit?: number) {
+ * filtered by feature. Pass `enabled=false` (e.g. when the ai_act module is off for the tenant)
+ * so the request never fires — the endpoint can legitimately 403/404 without it. */
+export function useAiDecisions(feature?: string, limit?: number, enabled: boolean = true) {
   return useQuery({
     queryKey: ['ai-decisions', { feature: feature ?? 'all', limit }],
     queryFn: () =>
@@ -422,6 +426,7 @@ export function useAiDecisions(feature?: string, limit?: number) {
         ...(feature ? { feature } : {}),
         ...(limit ? { per_page: limit } : {}),
       }),
+    enabled,
   });
 }
 
