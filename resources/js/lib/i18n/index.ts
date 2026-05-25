@@ -4,7 +4,8 @@ import { runtimeConfig } from '@/config';
 import { en } from './locales/en';
 import { it } from './locales/it';
 
-// IT default, EN fallback (TEMPLATE §7). Numbers/dates use Intl with the active locale.
+// Active locale comes from the host-injected runtimeConfig.locale (en* → English, else
+// Italian); EN is the fallback. Numbers/dates use Intl with the active locale.
 void i18n.use(initReactI18next).init({
   resources: {
     it: { common: it },

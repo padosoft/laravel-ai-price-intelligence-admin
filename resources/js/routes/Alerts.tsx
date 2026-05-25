@@ -4,7 +4,7 @@ import { KpiTile, AlertFeedRow } from '@/components/screens/shared';
 import { useToast } from '@/components/ds';
 import { useAlerts, useAlertActions } from '@/hooks/operate';
 import { useAlertStream } from '@/lib/realtime/alert-stream-context';
-import { apiBase } from '@/config';
+import { alertStreamUrl } from '@/config';
 import type { Severity } from '@/lib/api/types';
 
 const SEVERITIES: Array<Severity | 'all'> = ['all', 'high', 'medium', 'low'];
@@ -47,7 +47,7 @@ export function Alerts() {
             </span>
           )}
           <p className="page-sub">
-            Real-time stream from <span className="mono">{apiBase}/alerts/stream</span> (SSE). Channels: webhook, mail, Slack, Teams.
+            Real-time stream from <span className="mono">{alertStreamUrl()}</span> (SSE). Channels: webhook, mail, Slack, Teams.
           </p>
         </div>
         <div className="page-actions">

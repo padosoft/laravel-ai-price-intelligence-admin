@@ -25,7 +25,13 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supported) return;
-    const es = new EventSource(alertStreamUrl(), { withCredentials: true });
+    let es: EventSource;
+    try {
+      es = new EventSource(alertStreamUrl(), { withCredentials: true });
+    } catch {
+      setConnected(false); // invalid URL / unsupported — degrade to polling
+      return;
+    }
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false); // EventSource retries automatically
     // The core dispatches named SSE events (`event: alert` for payloads, `event: heartbeat`
