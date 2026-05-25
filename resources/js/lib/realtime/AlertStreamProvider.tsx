@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { runtimeConfig } from '@/config';
+import { alertStreamUrl, runtimeConfig } from '@/config';
 import type { Alert, CursorPage } from '@/lib/api/types';
 import { AlertStreamContext } from './alert-stream-context';
 
@@ -25,10 +25,7 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supported) return;
-    // Build the URL inside the effect from the (module-level, non-reactive) config so there's
-    // no outer-scope local to add to the dependency array.
-    const url = `${runtimeConfig.apiBaseUrl.replace(/\/+$/, '')}/alerts/stream`;
-    const es = new EventSource(url, { withCredentials: true });
+    const es = new EventSource(alertStreamUrl(), { withCredentials: true });
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false); // EventSource retries automatically
     es.onmessage = (ev: MessageEvent<string>) => {

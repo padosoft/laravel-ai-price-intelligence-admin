@@ -10,7 +10,7 @@ void i18n.use(initReactI18next).init({
     it: { common: it },
     en: { common: en },
   },
-  lng: runtimeConfig.locale === 'en' ? 'en' : 'it',
+  lng: runtimeConfig.locale.startsWith('en') ? 'en' : 'it',
   fallbackLng: 'en',
   defaultNS: 'common',
   interpolation: { escapeValue: false },
@@ -19,8 +19,8 @@ void i18n.use(initReactI18next).init({
 // Keep <html lang> in sync with the active locale (initial + on every switch) so assistive
 // tech and the browser announce content in the correct language.
 function syncDocumentLang(lng: string): void {
-  // Mirror the init rule: only 'en' is English; everything else resolves to Italian.
-  if (typeof document !== 'undefined') document.documentElement.lang = lng === 'en' ? 'en' : 'it';
+  // Mirror the init rule: any en* locale is English; everything else resolves to Italian.
+  if (typeof document !== 'undefined') document.documentElement.lang = lng.startsWith('en') ? 'en' : 'it';
 }
 syncDocumentLang(i18n.language);
 i18n.on('languageChanged', syncDocumentLang);

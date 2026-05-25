@@ -30,3 +30,8 @@ export const runtimeConfig: AdminRuntimeConfig = window.__PI_ADMIN__ ?? fallback
 
 /** API base with any trailing slash removed, so `${apiBase}/path` never double-slashes. */
 export const apiBase = runtimeConfig.apiBaseUrl.replace(/\/+$/, '');
+
+/** Absolute URL of the SSE alert stream (single source of truth for the realtime layer). */
+export function alertStreamUrl(): string {
+  return `${apiBase}/alerts/stream`;
+}
