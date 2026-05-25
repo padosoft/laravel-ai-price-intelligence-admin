@@ -28,9 +28,11 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
 > `GET /ai-decisions`, `/facets/hosts`+`/facets/categories`, streamed CSV export `:export`,
 > `PATCH /tenants/me/settings`, daily aggregates). Core dep bumped here to **^1.5**.
 - [x] **(prep)** bump `padosoft/laravel-ai-price-intelligence` → `^1.5` in composer.json.
-- [ ] **B4** — real test harness: a Testbench/Sail app mounting the core + DB (migrate + realistic
-  seed) exposing the live API; Playwright **integration** project against it (alongside the mock
-  project) + **visual-regression** baselines (`toHaveScreenshot`) on key screens; CI wiring.
+- [x] **B4** — real test harness (PR #12 merged): `tests/Feature/CoreIntegrationTest.php` boots the
+  panel + core providers against a real migrated sqlite DB, seeds data, exercises the v1.5 endpoints;
+  Playwright **visual regression** (`tests/e2e/visual.spec.ts` + `playwright.visual.config.ts`,
+  `toHaveScreenshot` on Dashboard/Catalog/Competitors/Compliance, live-pill masked) on a dedicated
+  **windows-latest `visual` CI job** (baselines are OS-matched); default ubuntu e2e ignores visual.
 - [ ] **B5** — wire placeholder actions/forms: New target/SKU/repricing-rule/webhook; Import CSV;
   Add-by-URL; Trigger discovery; **Export** CSV/PDF/digest (consumes `:export`); Compliance
   risk-register/attestation; **Settings write** (consumes `PATCH /tenants/me/settings`). Validated,
@@ -43,7 +45,27 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
 - [ ] **B8** — release hygiene: admin **CHANGELOG.md**, deploy + user/admin guides, consolidate
   B-phase lessons into AGENTS.md/.claude/rules; tag admin **v1.1.0** + release.
 
-### Next action (B4)
+### Next action (B5) — resume analysis (done before any code)
+The api client (`resources/js/lib/api/client.ts`) ALREADY has `api.post/patch/delete` + XSRF/bearer
+handling — **but there are no `useMutation` hooks and no wired forms yet**; action screens are
+read-only. B5 must add a small mutation-hook layer (TanStack `useMutation` + queryClient invalidation,
+optimistic+rollback) and wire each action, **plus add the matching handler to the MSW mock layer**
+(`resources/js/lib/api/mocks.ts`) so vitest/e2e/visual stay green, plus per-action tests.
+Actions to wire (core endpoint in parens) — "no dead buttons remain":
+- **Settings write** — `Settings.tsx` is fully read-only; add an editable General/notifications form →
+  `PATCH /tenants/me/settings` (B3). Expose `me().tenant.settings`.
+- **Export** CSV — Catalog + Prices "Export" → `GET /catalog/products:export` / `/observations/prices:export` (B3 streamed download).
+- **New target** (`POST /targets`), **Add-by-URL** (`POST /competitor-products`), **Trigger discovery**
+  (`POST /targets/{id}/discover:now`) + **scrape now** (`POST /targets/{id}/scrape:now`) — Targets/Competitors.
+- **New SKU / Import CSV** — Catalog → `POST /catalog/products:bulk` / `:csv`.
+- **New repricing rule** (Repricer editor) → `POST/PATCH /rules`; **simulate** → `POST /rules/{id}/simulate`.
+- **New webhook subscription** → `POST /webhook-subscriptions` + test button → `.../test`.
+- **Compliance** risk-register/attestation — surface; export attestation (doc/PDF deferred per spec if heavy).
+On `feat/admin-b5-wire-actions`. Strict per-phase loop (AGENTS.md). Then B6 (virtualization/facets/
+ai-decision viewer — `@tanstack/react-virtual` already a dep; `/facets/hosts` + `GET /ai-decisions`),
+B7 (SSE bearer/polling fallback), B8 (CHANGELOG + guides + tag admin v1.1.0).
+
+### (historical) Next action (B4)
 On `feat/admin-b4-test-harness`: after `composer update` to pull core ^1.5, build a Testbench test
 app that registers BOTH `PriceIntelligenceServiceProvider` and this panel's provider, migrates the
 core schema into a real (sqlite/mysql) DB, seeds realistic catalog+competitor+observation data, and
