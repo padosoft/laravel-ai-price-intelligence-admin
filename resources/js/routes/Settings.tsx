@@ -44,9 +44,12 @@ export function Settings() {
     setAlertEmail(settings.alert_email ?? '');
     setDensity(settings.density ?? 'comfortable');
     setChannels({ ...(settings.channels ?? {}) });
-    // Re-seed on identity change only; `settings` is a fresh object each render so key on its JSON.
+    // Re-seed only when the tenant identity changes (initial load / tenant switch), NOT on every
+    // /tenants/me refetch — otherwise a background refetch would clobber the user's in-progress
+    // edits. After a save the optimistic cache already holds the entered values, so no re-seed
+    // is needed for the form to stay consistent.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(settings)]);
+  }, [me?.tenant.id]);
 
   const save = (patch: TenantSettings, label: string) =>
     update.mutate(patch, {

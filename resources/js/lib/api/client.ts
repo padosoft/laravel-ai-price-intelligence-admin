@@ -154,8 +154,12 @@ export function saveBlob(blob: Blob, filename: string): void {
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  // Defer cleanup to the next tick: revoking the object URL synchronously right after click()
+  // can cancel/truncate the download in some browsers.
+  setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 0);
 }
 
 /** Fetch a `:export` endpoint and save it to the user's downloads. */
