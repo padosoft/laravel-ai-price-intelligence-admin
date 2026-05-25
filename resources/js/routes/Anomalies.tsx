@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { AiBadge } from '@/components/ds/pricing';
 import { AnomalyScatter, type ScatterPoint } from '@/components/charts';
-import { useAnomalies, useCompetitorPrices } from '@/hooks/operate';
+import { useToast } from '@/components/ds';
+import { useAnomalies, useAnomalyActions, useCompetitorPrices } from '@/hooks/operate';
 import type { Anomaly } from '@/lib/api/types';
 
 const SEV_BADGE: Record<string, string> = { high: 'failed', medium: 'paused', low: 'pending' };
@@ -18,6 +19,8 @@ export function Anomalies() {
   const { data, isLoading } = useAnomalies(100);
   const anomalies = useMemo(() => data?.data ?? [], [data]);
   const [typeFilter, setTypeFilter] = useState('all');
+  const { ack, ackBulk } = useAnomalyActions();
+  const toast = useToast();
 
   const types = useMemo(() => ['all', ...new Set(anomalies.map((a) => a.type))], [anomalies]);
   const typeCounts = useMemo(() => {
@@ -26,6 +29,19 @@ export function Anomalies() {
     return m;
   }, [anomalies]);
   const filtered = typeFilter === 'all' ? anomalies : anomalies.filter((a) => a.type === typeFilter);
+  const unackedIds = filtered.filter((a) => a.acknowledged_at == null).map((a) => a.id);
+
+  const onAck = (id: number) =>
+    ack.mutate(id, {
+      onSuccess: () => toast.push({ title: 'Anomaly acknowledged' }),
+      onError: () => toast.push({ title: 'Acknowledge failed', kind: 'error' }),
+    });
+
+  const onBulkAck = () =>
+    ackBulk.mutate(unackedIds, {
+      onSuccess: (res) => toast.push({ title: 'Bulk acknowledge complete', body: `${res.data.acknowledged} anomaly(ies)` }),
+      onError: () => toast.push({ title: 'Bulk acknowledge failed', kind: 'error' }),
+    });
 
   // Scatter: plot the price series of the listing with the most anomalies, marking the
   // observations whose capture day coincides with a detected anomaly.
@@ -70,7 +86,9 @@ export function Anomalies() {
           </p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn">Bulk acknowledge</button>
+          <button type="button" className="btn" disabled={unackedIds.length === 0 || ackBulk.isPending} onClick={onBulkAck}>
+            {ackBulk.isPending ? 'Acknowledging…' : `Bulk acknowledge${unackedIds.length ? ` (${unackedIds.length})` : ''}`}
+          </button>
         </div>
       </div>
 
@@ -151,7 +169,7 @@ export function Anomalies() {
                   </td>
                   <td className="mono muted">{a.detected_at.slice(0, 16).replace('T', ' ')}</td>
                   <td>
-                    <button type="button" className="btn sm" disabled={a.acknowledged_at != null}>
+                    <button type="button" className="btn sm" disabled={a.acknowledged_at != null || ack.isPending} onClick={() => onAck(a.id)}>
                       {a.acknowledged_at != null ? 'Acknowledged' : 'Acknowledge'}
                     </button>
                   </td>

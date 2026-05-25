@@ -97,6 +97,7 @@ let mockApiKeys = API_KEYS.map((k) => ({ ...k }));
 let mockTargets = TARGETS.map((t) => ({ ...t }));
 let mockCompetitors = COMPETITOR_LIST.map((c) => ({ ...c }));
 let mockProducts = PRODUCTS.map((p) => ({ ...p }));
+let mockAnomalies = ANOMALIES.map((a) => ({ ...a }));
 let mockTenantSettings: TenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
 let apiKeySeq = 90000;
 function nextApiKeyId(): number { return ++apiKeySeq; }
@@ -113,6 +114,7 @@ export function resetMockState(): void {
   mockTargets = TARGETS.map((t) => ({ ...t }));
   mockCompetitors = COMPETITOR_LIST.map((c) => ({ ...c }));
   mockProducts = PRODUCTS.map((p) => ({ ...p }));
+  mockAnomalies = ANOMALIES.map((a) => ({ ...a }));
   mockTenantSettings = { ...TENANT_SETTINGS_SEED, channels: { ...TENANT_SETTINGS_SEED.channels } };
   apiKeySeq = 90000;
   resourceSeq = 800000;
@@ -176,7 +178,15 @@ const handlers: Record<string, Handler> = {
     return { data: target };
   },
   'GET /alerts': () => page(mockAlerts),
-  'GET /anomalies': () => page(ANOMALIES),
+  'GET /anomalies': () => page(mockAnomalies),
+  'POST /anomalies:ack': (_query, body) => {
+    const ids = ((body as { ids?: number[] } | undefined)?.ids) ?? [];
+    let acknowledged = 0;
+    for (const a of mockAnomalies) {
+      if (ids.includes(a.id) && a.acknowledged_at == null) { a.acknowledged_at = new Date().toISOString(); acknowledged += 1; }
+    }
+    return { data: { acknowledged } };
+  },
   'GET /observations/prices': (query) => {
     const cpId = query?.competitor_product_id != null ? Number(query.competitor_product_id) : null;
     if (cpId != null) {
@@ -378,6 +388,14 @@ export async function mockFetch<T>(
     const id = Number(path.split('/')[2]);
     processedMatchIds.add(id);
     return (path.endsWith('approve') ? { data: { match_status: 'confirmed' } } : undefined) as T;
+  }
+  // Acknowledge a single anomaly
+  const anomalyAck = method === 'POST' && path.match(/^\/anomalies\/(\d+)\/ack$/);
+  if (anomalyAck) {
+    const id = Number(anomalyAck[1]);
+    const anomaly = mockAnomalies.find((a) => a.id === id);
+    if (anomaly) anomaly.acknowledged_at = new Date().toISOString();
+    return { data: anomaly ?? {} } as T;
   }
   // Acknowledge alert
   const alertAck = method === 'POST' && path.match(/^\/alerts\/(\d+)\/ack$/);

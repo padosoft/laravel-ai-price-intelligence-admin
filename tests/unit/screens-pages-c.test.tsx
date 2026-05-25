@@ -1,7 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { beforeEach } from 'vitest';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient } from '@/lib/api/queryClient';
+import { resetMockState } from '@/lib/api/mocks';
 import { ToastProvider } from '@/components/ds';
 import { AuthProvider } from '@/state/AuthProvider';
 import { Anomalies } from '@/routes/Anomalies';
@@ -22,6 +24,9 @@ function wrap(ui: React.ReactElement) {
 }
 
 describe('Anomalies', () => {
+  // Ack mutations mutate in-memory anomaly state; reset so a case can't leak into the next.
+  beforeEach(() => resetMockState());
+
   it('lists detections and filters by type', async () => {
     const user = userEvent.setup();
     wrap(<Anomalies />);
@@ -33,6 +38,28 @@ describe('Anomalies', () => {
     await user.click(chip);
     // Only the 1 price_error row should remain in the table.
     await waitFor(() => expect(screen.getAllByText(/CP #/).length).toBe(1));
+  });
+
+  it('acknowledges a single anomaly (POST /anomalies/{id}/ack)', async () => {
+    const user = userEvent.setup();
+    wrap(<Anomalies />);
+    await waitFor(() => expect(screen.getAllByText(/CP #/).length).toBe(3));
+    const firstRow = screen.getAllByText(/CP #/)[0].closest('tr') as HTMLElement;
+    const ackBtn = within(firstRow).getByRole('button', { name: 'Acknowledge' });
+    await user.click(ackBtn);
+    await waitFor(() => expect(screen.getByText('Anomaly acknowledged')).toBeInTheDocument());
+    // The row's button flips to its acknowledged (disabled) state after the refetch.
+    await waitFor(() => expect(within(firstRow).getByRole('button', { name: 'Acknowledged' })).toBeDisabled());
+  });
+
+  it('bulk-acknowledges all unacknowledged anomalies (POST /anomalies:ack)', async () => {
+    const user = userEvent.setup();
+    wrap(<Anomalies />);
+    await waitFor(() => expect(screen.getAllByText(/CP #/).length).toBe(3));
+    await user.click(screen.getByRole('button', { name: /Bulk acknowledge/ }));
+    await waitFor(() => expect(screen.getByText('Bulk acknowledge complete')).toBeInTheDocument());
+    // After the refetch, no row offers the actionable "Acknowledge" anymore.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Acknowledge' })).not.toBeInTheDocument());
   });
 });
 

@@ -287,6 +287,24 @@ export function useCompetitorActions() {
   return { addByUrl, discover };
 }
 
+/**
+ * Anomaly review actions (core v1.6). `ack` acknowledges one anomaly; `ackBulk` acknowledges a
+ * batch by id (server skips already-acked). Both invalidate the anomalies list on success.
+ */
+export function useAnomalyActions() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['anomalies'] });
+  const ack = useMutation({
+    mutationFn: (id: number) => api.post(`/anomalies/${id}/ack`),
+    onSuccess: invalidate,
+  });
+  const ackBulk = useMutation({
+    mutationFn: (ids: number[]) => api.post<{ data: { acknowledged: number } }>('/anomalies:ack', { ids }),
+    onSuccess: invalidate,
+  });
+  return { ack, ackBulk };
+}
+
 // ---- Intelligence (A5) ----
 
 /** Price forecasts (statistical model + confidence interval). */
