@@ -24,9 +24,11 @@ function Markdown({ md }: { md: string }) {
   for (const raw of lines) {
     const line = raw.trimEnd();
     if (!line.trim()) { flush(); continue; }
+    // The page already owns the single <h1> ("Weekly narrative"); the digest body starts at
+    // <h2> so a "# " line can't introduce a competing top-level heading.
     if (line.startsWith('### ')) { flush(); blocks.push(<h3 key={blocks.length}>{inline(line.slice(4))}</h3>); }
     else if (line.startsWith('## ')) { flush(); blocks.push(<h2 key={blocks.length}>{inline(line.slice(3))}</h2>); }
-    else if (line.startsWith('# ')) { flush(); blocks.push(<h1 key={blocks.length}>{inline(line.slice(2))}</h1>); }
+    else if (line.startsWith('# ')) { flush(); blocks.push(<h2 key={blocks.length}>{inline(line.slice(2))}</h2>); }
     else if (line.startsWith('- ')) { list.push(line.slice(2)); }
     else { flush(); blocks.push(<p key={blocks.length}>{inline(line)}</p>); }
   }
