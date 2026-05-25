@@ -3,10 +3,15 @@ import { api, unwrap } from '@/lib/api/client';
 import type {
   Alert,
   Anomaly,
+  CompetitorDetail,
+  CompetitorListItem,
   CursorPage,
+  FetchLog,
+  MatchProposal,
   MonitoringTarget,
   PriceObservation,
   Product,
+  Resource,
   TargetStatus,
 } from '@/lib/api/types';
 
@@ -43,6 +48,68 @@ export function usePriceSeries(host: string) {
   return useQuery({
     queryKey: ['observations', 'prices', host],
     queryFn: () => api.get<CursorPage<PriceObservation>>('/observations/prices', { host }),
+  });
+}
+
+/** Price observation series for a single competitor listing (Competitor Detail price tab). */
+export function useCompetitorPrices(competitorProductId: number) {
+  return useQuery({
+    queryKey: ['observations', 'prices', 'cp', competitorProductId],
+    queryFn: () =>
+      api.get<CursorPage<PriceObservation>>('/observations/prices', { competitor_product_id: competitorProductId }),
+  });
+}
+
+/** Pending match proposals (the [60,85) human-review queue). */
+export function useMatches(status: string = 'pending') {
+  return useQuery({
+    queryKey: ['matches', status],
+    queryFn: () => api.get<CursorPage<MatchProposal>>('/matches', { status }),
+  });
+}
+
+/**
+ * Approve / reject a match proposal. Both invalidate the matches queue; the swipe deck
+ * advances optimistically on its own and only relies on these for server persistence.
+ */
+export function useMatchActions() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['matches'] });
+
+  const approve = useMutation({
+    mutationFn: (id: number) => api.post(`/matches/${id}/approve`),
+    onSuccess: invalidate,
+  });
+  const reject = useMutation({
+    mutationFn: (id: number) => api.post(`/matches/${id}/reject`),
+    onSuccess: invalidate,
+  });
+
+  return { approve, reject };
+}
+
+/** Confirmed competitor listings, optionally narrowed by host. */
+export function useCompetitors(host?: string) {
+  return useQuery({
+    queryKey: ['competitor-products', { host: host ?? 'all' }],
+    queryFn: () =>
+      api.get<CursorPage<CompetitorListItem>>('/competitor-products', host ? { host } : undefined),
+  });
+}
+
+/** Single competitor listing detail (header + latest price/stock/promo/content snapshots). */
+export function useCompetitorDetail(id: number) {
+  return useQuery({
+    queryKey: ['competitor-products', id],
+    queryFn: () => api.get<Resource<CompetitorDetail>>(`/competitor-products/${id}`).then(unwrap),
+  });
+}
+
+/** Recent HTTP fetch audit log (Competitor Detail audit tab + the Audit screen). */
+export function useFetchLogs(limit?: number) {
+  return useQuery({
+    queryKey: ['audit', 'fetch-logs', { limit }],
+    queryFn: () => api.get<CursorPage<FetchLog>>('/audit/fetch-logs', limit ? { per_page: limit } : undefined),
   });
 }
 

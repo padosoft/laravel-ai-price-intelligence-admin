@@ -1,6 +1,10 @@
 import { Dashboard } from './Dashboard';
 import { Catalog } from './Catalog';
 import { Targets } from './Targets';
+import { Matches } from './Matches';
+import { Competitors } from './Competitors';
+import { CompetitorDetail } from './CompetitorDetail';
+import { Prices } from './Prices';
 import { ROUTE_TITLES } from '@/components/layout/nav';
 import type { RouteKey } from '@/lib/types';
 
@@ -10,7 +14,7 @@ export interface PageRouterProps {
   onNavigate: (route: RouteKey, params?: Record<string, unknown>) => void;
 }
 
-/** Placeholder for routes whose screens land in later phases (A4–A6). */
+/** Placeholder for routes whose screens land in later phases (A5–A6). */
 function ComingSoon({ route }: { route: RouteKey }) {
   const title = (ROUTE_TITLES[route] ?? [route]).at(-1) ?? route;
   return (
@@ -28,7 +32,7 @@ function ComingSoon({ route }: { route: RouteKey }) {
   );
 }
 
-export function PageRouter({ route, routeParams: _routeParams, onNavigate }: PageRouterProps) {
+export function PageRouter({ route, routeParams, onNavigate }: PageRouterProps) {
   switch (route) {
     case 'dashboard':
       return <Dashboard onNavigate={onNavigate} />;
@@ -36,6 +40,16 @@ export function PageRouter({ route, routeParams: _routeParams, onNavigate }: Pag
       return <Catalog onNavigate={onNavigate} />;
     case 'targets':
       return <Targets />;
+    case 'matches':
+      return <Matches />;
+    case 'competitors':
+      return <Competitors onNavigate={onNavigate} />;
+    case 'competitor_detail': {
+      const id = Number(routeParams.competitorId);
+      return <CompetitorDetail competitorId={Number.isFinite(id) ? id : 0} onNavigate={onNavigate} />;
+    }
+    case 'prices':
+      return <Prices />;
     default:
       return <ComingSoon route={route} />;
   }
