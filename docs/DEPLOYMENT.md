@@ -30,10 +30,9 @@ Node/build step is required** — only publish the assets (above) so they're ser
 
 ## Configure (runtime config injected into the page)
 
-The Blade wrapper injects `window.__PI_ADMIN__`. Provide it via the package config / env:
-
-The `PanelController` injects `window.__PI_ADMIN__` from `config/price-intelligence-admin.php`
-(publish + edit, or set the env vars). The injected keys and their config sources:
+The Blade wrapper injects `window.__PI_ADMIN__`, built by `PanelController` from
+`config/price-intelligence-admin.php` (publish + edit the config, or set the env vars). The injected
+keys and their config sources:
 
 | Injected key | Config key / env | Meaning | Default |
 |---|---|---|---|
