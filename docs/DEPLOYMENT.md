@@ -33,7 +33,7 @@ The Blade wrapper injects `window.__PI_ADMIN__`. Provide it via the package conf
 | `auth.mode` | `cookie` (Sanctum SPA, **recommended**) or `bearer` (headless) | `cookie` |
 | `csrfCookie` | XSRF cookie name (cookie mode) | `XSRF-TOKEN` |
 | `locale` | Initial UI locale (`en*` → English, else Italian) | `it` |
-| `realtime.driver` | `sse` (live stream) or `echo` | `sse` |
+| `realtime.driver` | `sse` enables the live EventSource stream (cookie mode). Any other value (or bearer auth / no EventSource) → the panel uses the polling fallback. | `sse` |
 | `realtime.pollIntervalMs` | Polling-fallback cadence (ms, floored to 1000) | `15000` |
 | `useMocks` | Serve in-app fixtures instead of the live API (dev/demo only) | `false` |
 
