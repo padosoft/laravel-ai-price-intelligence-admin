@@ -102,6 +102,18 @@ Append learnings, environment quirks, and Copilot/CI feedback here. Carry the co
   it as an explicit transport `mode` ('sse'|'polling'|'off') in context. Test polling by `vi.mock`-ing
   `@/config` to bearer + fake timers + spying `invalidateQueries`.
 
+## Maintenance: Vite 6 → 8
+- **Vite 8 is Rolldown-based.** Build still emits the manifest at `.vite/manifest.json` (Blade
+  wrapper already resolves that path), `base: './'` and `build.manifest` unchanged. The
+  >500 kB chunk warning now suggests `build.rolldownOptions.output.codeSplitting` instead of
+  `rollupOptions` — it's a warning, not a gate failure; no config change needed.
+- **`@vitejs/plugin-react@6` requires `vite ^8`** (peer) — must bump it together with Vite; its
+  `babel-plugin-react-compiler` / `@rolldown/plugin-babel` peers are optional. `@tailwindcss/vite@4.3`
+  peers `vite ^5.2||^6||^7||^8`, `vitest@4` peers `vite ^6||^7||^8` — both already Vite-8-ready, so the
+  only forced co-bump is plugin-react 4→6. Kept tailwindcss/@tailwindcss/vite aligned at 4.3.
+- No source/config edits were needed: typecheck/lint/vitest 82/build/e2e 8/visual 4 all green and
+  visual baselines matched 1:1 (rendering unchanged) under Vite 8.0.14.
+
 ## Per-phase loop
 - Same strict loop as the core: local tests + local Copilot → push → CI green + GitHub Copilot zero
   comments → squash-merge + delete branch → next phase.
