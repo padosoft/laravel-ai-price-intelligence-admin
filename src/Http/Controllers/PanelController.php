@@ -36,7 +36,10 @@ final class PanelController
                 'auth' => ['mode' => (string) $this->config->get('price-intelligence-admin.auth_mode', 'cookie')],
                 'locale' => $this->app->getLocale(),
                 'csrfCookie' => 'XSRF-TOKEN',
-                'realtime' => ['driver' => (string) $this->config->get('price-intelligence-admin.realtime', 'sse')],
+                'realtime' => [
+                    'driver' => (string) $this->config->get('price-intelligence-admin.realtime', 'sse'),
+                    'pollIntervalMs' => (int) $this->config->get('price-intelligence-admin.realtime_poll_interval_ms', 15000),
+                ],
             ],
             'assets' => $this->resolveAssets(),
             'assetBase' => rtrim(asset(self::PUBLIC_SUBDIR), '/').'/',

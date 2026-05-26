@@ -18,24 +18,34 @@ core API.
 ```bash
 composer require padosoft/laravel-ai-price-intelligence-admin
 php artisan migrate            # core tables, if not already migrated
+# Publish the prebuilt SPA assets to public/vendor/price-intelligence-admin
+php artisan vendor:publish --tag=price-intelligence-admin-assets
+php artisan vendor:publish --tag=price-intelligence-admin-config   # optional
 ```
 
-The service provider auto-registers. Assets are served from the published Vite manifest, so no build
-step is required for a tagged release.
+The service provider auto-registers. A tagged release ships the prebuilt `resources/dist`, so **no
+Node/build step is required** — only publish the assets (above) so they're served from
+`public/vendor/price-intelligence-admin` via the Vite manifest. Re-run the assets publish (with
+`--force`) after upgrading.
 
 ## Configure (runtime config injected into the page)
 
 The Blade wrapper injects `window.__PI_ADMIN__`. Provide it via the package config / env:
 
-| Key | Meaning | Example |
-|---|---|---|
-| `apiBaseUrl` | Core REST base | `/api/v1` |
-| `auth.mode` | `cookie` (Sanctum SPA, **recommended**) or `bearer` (headless) | `cookie` |
-| `csrfCookie` | XSRF cookie name (cookie mode) | `XSRF-TOKEN` |
-| `locale` | Initial UI locale (`en*` → English, else Italian) | `it` |
-| `realtime.driver` | `sse` enables the live EventSource stream (cookie mode). Any other value (or bearer auth / no EventSource) → the panel uses the polling fallback. | `sse` |
-| `realtime.pollIntervalMs` | Polling-fallback cadence (ms, floored to 1000) | `15000` |
-| `useMocks` | Serve in-app fixtures instead of the live API (dev/demo only) | `false` |
+The `PanelController` injects `window.__PI_ADMIN__` from `config/price-intelligence-admin.php`
+(publish + edit, or set the env vars). The injected keys and their config sources:
+
+| Injected key | Config key / env | Meaning | Default |
+|---|---|---|---|
+| `apiBaseUrl` | `api_base_url` / `PRICE_INTELLIGENCE_ADMIN_API_BASE_URL` | Core REST base | `/api/v1` |
+| `auth.mode` | `auth_mode` / `PRICE_INTELLIGENCE_ADMIN_AUTH_MODE` | `cookie` (Sanctum SPA, **recommended**) or `bearer` (headless) | `cookie` |
+| `locale` | the app locale (`App::getLocale()`) — `en*` → English, else Italian | `it` |
+| `realtime.driver` | `realtime` / `PRICE_INTELLIGENCE_ADMIN_REALTIME` | `sse` enables the live EventSource stream (cookie mode). Any other value (or bearer auth / no EventSource) → the panel uses the polling fallback. | `sse` |
+| `realtime.pollIntervalMs` | `realtime_poll_interval_ms` / `PRICE_INTELLIGENCE_ADMIN_REALTIME_POLL_MS` | Polling-fallback cadence (ms, floored to 1000) | `15000` |
+| `csrfCookie` | fixed `XSRF-TOKEN` (Sanctum default) | XSRF cookie name (cookie mode) | `XSRF-TOKEN` |
+
+> `useMocks` is **not** a production config key — it's a frontend dev/test fallback (the in-app MSW
+> fixtures) and is never injected by the PHP side in production.
 
 ### Auth modes
 

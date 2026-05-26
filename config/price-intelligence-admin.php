@@ -41,4 +41,13 @@ return [
     | 'sse' (default, zero extra infra) or 'echo' (Reverb / laravel-websockets).
     */
     'realtime' => env('PRICE_INTELLIGENCE_ADMIN_REALTIME', 'sse'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Polling fallback cadence (ms)
+    |--------------------------------------------------------------------------
+    | When SSE can't be used (bearer/headless auth, or no EventSource), the panel
+    | polls the alerts endpoint on this interval. Floored to 1000ms client-side.
+    */
+    'realtime_poll_interval_ms' => (int) env('PRICE_INTELLIGENCE_ADMIN_REALTIME_POLL_MS', 15000),
 ];
