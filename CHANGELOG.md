@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/) and the proje
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-05-26
+
+Toolchain maintenance — no functional or UI changes. All gates green (82 Vitest, Playwright e2e +
+visual regression with OS-matched baselines unchanged → rendering identical).
+
+### Changed
+- **Upgrade Vite `^6` → `^8`** (now Rolldown-based). The build still emits the manifest at
+  `.vite/manifest.json`, so the Blade asset wrapper is unaffected; no `vite.config.ts`/source changes.
+- Co-bump **`@vitejs/plugin-react` `^4` → `^6`** (its peer requires Vite `^8`) and align
+  **`tailwindcss` / `@tailwindcss/vite` `^4.0` → `^4.3`**.
+- Dev: **Vitest + `@vitest/coverage-v8` → `^4`**.
+- Docs: README Vite badge → 8; corrected the e2e quick-start command (`npm run e2e`).
+
+### Fixed
+- Regenerated `package-lock.json` so `npm ci` resolves Rolldown's Linux-only optional native deps
+  (`@emnapi/core`, `@emnapi/runtime`) on CI runners.
+
 ## [1.1.0] - 2026-05-26
 
 The **B-phase**: turning the read-mostly v1.0 panel into a fully interactive, enterprise-scale,
@@ -53,6 +70,7 @@ First public release: the full read-side admin panel (19 screens) for the core A
 - **A7** — real-time SSE alerts, i18n switcher, WCAG-AA contrast (axe `color-contrast` enforced in CI).
 - **A8** — README with screenshot gallery, consolidated lessons into AGENTS.md.
 
-[Unreleased]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/releases/tag/v1.0.0

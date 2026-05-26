@@ -3,7 +3,7 @@
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777bb4.svg?style=flat-square)](https://www.php.net/)
 [![Laravel](https://img.shields.io/badge/Laravel-11%20%7C%2012%20%7C%2013-ff2d20.svg?style=flat-square)](https://laravel.com/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg?style=flat-square)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-6-646cff.svg?style=flat-square)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8-646cff.svg?style=flat-square)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-4-38bdf8.svg?style=flat-square)](https://tailwindcss.com/)
 [![Tests](https://img.shields.io/github/actions/workflow/status/padosoft/laravel-ai-price-intelligence-admin/ci.yml?branch=main&label=tests&style=flat-square)](https://github.com/padosoft/laravel-ai-price-intelligence-admin/actions)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat-square)](LICENSE)
@@ -113,7 +113,7 @@ npm run dev
 
 # Quality gates
 npm run typecheck && npm run lint && npm run test && npm run build
-npm run test:e2e        # Playwright + axe against the built preview
+npm run e2e             # Playwright + axe against the built preview
 ```
 
 Mount it from your host app by `composer require padosoft/laravel-ai-price-intelligence-admin`; the
