@@ -48,6 +48,9 @@ function useOptimisticCreate<TVars, TItem, TResult>(
   // cache whose filter wouldn't actually contain the new item (e.g. a paused-only target list
   // must not flash a newly created active target). Defaults to "applies everywhere".
   appliesTo?: (queryKey: readonly unknown[], vars: TVars) => boolean,
+  // Extra query-key prefixes to invalidate on settle (e.g. a derived facet whose counts change
+  // when the list changes). The primary `prefix` is always invalidated.
+  alsoInvalidate?: readonly (readonly unknown[])[],
 ) {
   const qc = useQueryClient();
   return useMutation<TResult, unknown, TVars, { snapshots: Array<[readonly unknown[], CursorPage<TItem> | undefined]> }>({
@@ -70,7 +73,10 @@ function useOptimisticCreate<TVars, TItem, TResult>(
     onError: (_e, _v, ctx) => {
       ctx?.snapshots.forEach(([key, data]) => qc.setQueryData(key, data));
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: prefix }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: prefix });
+      alsoInvalidate?.forEach((key) => void qc.invalidateQueries({ queryKey: key }));
+    },
   });
 }
 
@@ -178,6 +184,9 @@ export function useCatalogActions() {
       currency: input.currency ?? null,
       base_country: input.base_country ?? null,
     }),
+    undefined,
+    // A new SKU changes the per-brand facet counts that drive the Catalog chips.
+    [['facets', 'brands']],
   );
 
   const importCsv = useMutation({
@@ -186,7 +195,10 @@ export function useCatalogActions() {
       form.append('file', file);
       return api.post<{ data: { imported: number } }>('/catalog/products:csv', form);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['catalog', 'products'] }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['catalog', 'products'] });
+      void qc.invalidateQueries({ queryKey: ['facets', 'brands'] });
+    },
   });
 
   return { createSku, importCsv };
@@ -355,6 +367,8 @@ export function useCompetitorActions() {
       const params = key[1] as { host?: string; productId?: number | null } | undefined;
       return params?.host === 'all' && (params?.productId ?? null) === null;
     },
+    // Adding/removing a competitor changes the per-host facet counts.
+    [['facets', 'hosts']],
   );
 
   const discover = useMutation({
@@ -425,9 +439,10 @@ export function useReviews(period?: string) {
   });
 }
 
-/** EU AI Act decision log (Compliance screen), cursor-paginated, newest first. Optionally
- * filtered by feature. Pass `enabled=false` (e.g. when the ai_act module is off for the tenant)
- * so the request never fires — the endpoint can legitimately 403/404 without it. */
+/** EU AI Act decision log (Compliance screen). Loads the newest single page (`per_page` limit),
+ * newest first, optionally filtered by feature — the Compliance viewer shows a recent snapshot,
+ * not a full pager. Pass `enabled=false` (e.g. when the ai_act module is off for the tenant) so
+ * the request never fires — the endpoint can legitimately 403/404 without it. */
 export function useAiDecisions(feature?: string, limit?: number, enabled: boolean = true) {
   return useQuery({
     queryKey: ['ai-decisions', { feature: feature ?? 'all', limit }],

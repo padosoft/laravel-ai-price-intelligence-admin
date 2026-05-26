@@ -156,6 +156,7 @@ export function Competitors({ onNavigate }: { onNavigate: (r: RouteKey, params?:
             rows={rows}
             colCount={9}
             testId="competitors-list"
+            ariaLabel="Competitor listings"
             hasNextPage={list.hasNextPage}
             isFetchingNextPage={list.isFetchingNextPage}
             onLoadMore={() => list.fetchNextPage()}

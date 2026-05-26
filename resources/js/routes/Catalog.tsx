@@ -156,6 +156,7 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
             rows={listRows}
             colCount={5}
             testId="catalog-list"
+            ariaLabel="Catalog products"
             hasNextPage={list.hasNextPage}
             isFetchingNextPage={list.isFetchingNextPage}
             onLoadMore={() => list.fetchNextPage()}
@@ -170,7 +171,8 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
             )}
             empty={!list.isLoading ? <tr><td colSpan={5} className="empty">No products</td></tr> : undefined}
             renderRow={(p) => {
-              const nav = () => onNavigate('competitor_detail', { product: p.id });
+              // Product-centric destination: the Prices explorer preselected to this SKU.
+              const nav = () => onNavigate('prices', { productId: p.id });
               const handleKey = (e: KeyboardEvent<HTMLTableRowElement>) => {
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav(); }
               };

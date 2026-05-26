@@ -17,6 +17,8 @@ export interface VirtualTableProps<T> {
   /** A `<tr>` shown when there are no rows. */
   empty?: ReactNode;
   testId?: string;
+  /** Accessible label for the scroll region (keyboard users focus it to scroll). */
+  ariaLabel?: string;
 }
 
 /**
@@ -38,6 +40,7 @@ export function VirtualTable<T>({
   onLoadMore,
   empty,
   testId,
+  ariaLabel,
 }: VirtualTableProps<T>) {
   const parentRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
@@ -66,7 +69,16 @@ export function VirtualTable<T>({
   }, [lastIndex, items.length, hasNextPage, isFetchingNextPage, rows.length, onLoadMore]);
 
   return (
-    <div ref={parentRef} className="table-wrap" style={{ maxHeight, overflow: 'auto' }} data-testid={testId}>
+    <div
+      ref={parentRef}
+      className="table-wrap"
+      style={{ maxHeight, overflow: 'auto' }}
+      data-testid={testId}
+      // Focusable so keyboard-only users can scroll the virtualized body (PageDown/Arrows).
+      tabIndex={0}
+      role="group"
+      aria-label={ariaLabel}
+    >
       <table className="tbl">
         <thead>{head}</thead>
         <tbody>
