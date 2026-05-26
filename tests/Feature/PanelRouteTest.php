@@ -29,7 +29,22 @@ final class PanelRouteTest extends TestCase
         $response->assertSee('window.__PI_ADMIN__', false);
         $response->assertSee('JSON.parse(', false);
         $response->assertSee('apiBaseUrl', false);
+        // The realtime block (driver + polling-fallback cadence) is injected from config.
+        $response->assertSee('pollIntervalMs', false);
         $response->assertSee('id="root"', false);
+    }
+
+    #[Test]
+    public function the_poll_interval_is_taken_from_config(): void
+    {
+        // Use a distinctive value that won't occur incidentally, so seeing it proves it flowed from
+        // config into the injected payload (the default is 15000). Js::from() emits the runtime as a
+        // JSON string with unicode-escaped quotes (matching the other test's note) but leaves the
+        // bare number intact, so the key and value render adjacent in the payload.
+        config()->set('price-intelligence-admin.realtime_poll_interval_ms', 73313);
+        $response = $this->get('/admin/price-intelligence')->assertOk();
+        $response->assertSee('pollIntervalMs', false);
+        $response->assertSee('73313', false);
     }
 
     #[Test]
