@@ -7,6 +7,17 @@ import { AlertStreamContext } from './alert-stream-context';
 
 /** Default polling cadence (ms) when the SSE fallback is active. */
 const DEFAULT_POLL_INTERVAL_MS = 15_000;
+/** Floor for the poll interval, so a misconfigured value can't tight-loop the backend. */
+const MIN_POLL_INTERVAL_MS = 1_000;
+
+/** Resolve a safe poll cadence: the configured value when it's a positive finite number, else the
+ * default, clamped to a sane minimum. */
+function resolvePollIntervalMs(configured: number | undefined): number {
+  const value = typeof configured === 'number' && Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_POLL_INTERVAL_MS;
+  return Math.max(value, MIN_POLL_INTERVAL_MS);
+}
 
 /**
  * Mounts the app's single live-alert transport and keeps the cached `['alerts']` pages fresh so
@@ -69,7 +80,7 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
   // SSE isn't available. Cookie-mode SSE remains primary and never polls.
   useEffect(() => {
     if (mode !== 'polling') return;
-    const interval = runtimeConfig.realtime.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+    const interval = resolvePollIntervalMs(runtimeConfig.realtime.pollIntervalMs);
     setConnected(true);
     const id = setInterval(() => { void qc.invalidateQueries({ queryKey: ['alerts'] }); }, interval);
     return () => { clearInterval(id); setConnected(false); };
