@@ -5,31 +5,52 @@ import { alertStreamUrl, runtimeConfig } from '@/config';
 import type { Alert, CursorPage } from '@/lib/api/types';
 import { AlertStreamContext } from './alert-stream-context';
 
+/** Default polling cadence (ms) when the SSE fallback is active. */
+const DEFAULT_POLL_INTERVAL_MS = 15_000;
+/** Floor for the poll interval, so a misconfigured value can't tight-loop the backend. */
+const MIN_POLL_INTERVAL_MS = 1_000;
+
+/** Resolve a safe poll cadence: the configured value when it's a positive finite number, else the
+ * default, clamped to a sane minimum. */
+function resolvePollIntervalMs(configured: number | undefined): number {
+  const value = typeof configured === 'number' && Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_POLL_INTERVAL_MS;
+  return Math.max(value, MIN_POLL_INTERVAL_MS);
+}
+
 /**
- * Mounts a single Server-Sent Events subscription to the core's alert stream
- * (`GET /alerts/stream`) for the whole app, prepending incoming alerts into the cached
- * `['alerts']` pages so every open screen updates live. Wrap the app once.
+ * Mounts the app's single live-alert transport and keeps the cached `['alerts']` pages fresh so
+ * every open screen updates live. Wrap the app once.
  *
- * - Cookie credentials in SPA mode (EventSource can't set a Bearer header; bearer/headless
- *   deployments fall back to polling — `supported` is false there).
- * - No-ops against the dev/test mock layer so unit/e2e runs never open a real connection.
+ * - **SSE (primary)** in cookie SPA mode: subscribes to `GET /alerts/stream` (EventSource with
+ *   cookie credentials) and prepends incoming alerts into the cache. `mode: 'sse'`.
+ * - **Polling fallback** when SSE can't be used — bearer/headless auth (EventSource can't send a
+ *   Bearer header), a non-SSE driver, or no `EventSource` — invalidates `['alerts']` on an
+ *   interval so "live" degrades gracefully. `mode: 'polling'`.
+ * - **Off** against the dev/test mock layer (never opens a connection or timer). `mode: 'off'`.
  */
 export function AlertStreamProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
-  const supported =
+  const sseSupported =
     !runtimeConfig.useMocks &&
     runtimeConfig.realtime.driver === 'sse' &&
     runtimeConfig.auth.mode === 'cookie' &&
     typeof EventSource !== 'undefined';
+  // Real backend but SSE isn't usable (bearer/headless, non-SSE driver, or no EventSource) → poll.
+  const pollingFallback = !runtimeConfig.useMocks && !sseSupported;
+  const mode: 'sse' | 'polling' | 'off' = sseSupported ? 'sse' : pollingFallback ? 'polling' : 'off';
+
   const [connected, setConnected] = useState(false);
 
+  // SSE transport (primary).
   useEffect(() => {
-    if (!supported) return;
+    if (mode !== 'sse') return;
     let es: EventSource;
     try {
       es = new EventSource(alertStreamUrl(), { withCredentials: true });
     } catch {
-      setConnected(false); // invalid URL / unsupported — degrade to polling
+      setConnected(false); // invalid URL / unsupported
       return;
     }
     es.onopen = () => setConnected(true);
@@ -53,7 +74,21 @@ export function AlertStreamProvider({ children }: { children: ReactNode }) {
     };
     es.addEventListener('alert', onAlert as EventListener);
     return () => { es.removeEventListener('alert', onAlert as EventListener); es.close(); setConnected(false); };
-  }, [supported, qc]);
+  }, [mode, qc]);
 
-  return <AlertStreamContext.Provider value={{ connected, supported }}>{children}</AlertStreamContext.Provider>;
+  // Polling fallback: periodically re-fetch the alerts queries so the inbox stays near-live where
+  // SSE isn't available. Cookie-mode SSE remains primary and never polls.
+  useEffect(() => {
+    if (mode !== 'polling') return;
+    const interval = resolvePollIntervalMs(runtimeConfig.realtime.pollIntervalMs);
+    setConnected(true);
+    const id = setInterval(() => { void qc.invalidateQueries({ queryKey: ['alerts'] }); }, interval);
+    return () => { clearInterval(id); setConnected(false); };
+  }, [mode, qc]);
+
+  return (
+    <AlertStreamContext.Provider value={{ connected, supported: mode !== 'off', mode }}>
+      {children}
+    </AlertStreamContext.Provider>
+  );
 }

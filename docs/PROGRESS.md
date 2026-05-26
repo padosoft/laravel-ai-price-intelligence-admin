@@ -43,8 +43,11 @@ All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+a
   from `GET /facets/hosts` (exact SQL counts via `useHostFacets`); **AI-decision-log viewer** in
   Compliance (`GET /ai-decisions` via `useAiDecisions`). 80 vitest green. Smaller operational lists
   (targets/alerts/rules/anomalies) stay single-page (bounded); the 500k-scale lists are virtualized.
-- [ ] **B7** — SSE **bearer/polling fallback**: interval refetch of `['alerts']` when EventSource is
-  unavailable (bearer/headless); keep cookie-mode SSE primary; both tested.
+- [x] **B7** — SSE **bearer/polling fallback** on `feat/admin-b7-sse-fallback`: AlertStreamProvider now
+  resolves a transport `mode` — `sse` (cookie SPA, primary, unchanged), `polling` (bearer/headless,
+  non-SSE driver, or no EventSource → `setInterval` invalidate of `['alerts']`, cadence
+  `realtime.pollIntervalMs` default 15s), or `off` (mock/dev). Alerts live-pill shows Live/Polling/
+  Reconnecting. 82 vitest (added bearer-polling test w/ fake timers).
 - [ ] **B8** — release hygiene: admin **CHANGELOG.md**, deploy + user/admin guides, consolidate
   B-phase lessons into AGENTS.md/.claude/rules; tag admin **v1.1.0** + release.
 

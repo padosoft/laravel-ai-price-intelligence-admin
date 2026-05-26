@@ -82,6 +82,26 @@ Append learnings, environment quirks, and Copilot/CI feedback here. Carry the co
 - **Bulk-id endpoints**: bound the array (`max:5000`) and constrain items (`integer,min:1,distinct`)
   to avoid oversized `WHERE IN` and redundant ids; add a cross-tenant isolation test (404 single / 0 bulk).
 
+## B6/B7 (enterprise UX + realtime fallback)
+- **Virtualizing a `<table>` in jsdom**: `@tanstack/react-virtual` needs `ResizeObserver` (stub a
+  no-op in test setup or it throws) and a measurable scroll viewport — jsdom has neither, so the
+  virtualizer yields an empty window. Make the component fall back to rendering all rows when
+  `getVirtualItems()` is empty (also good for SSR), so tests/headless render content. Use the
+  spacer-row technique (top/bottom padding `<tr>`s) to keep `<table>` semantics + DS `.tbl` styling.
+  Make the scroll container focusable (`tabIndex={0}` + `role`/`aria-label`) for keyboard scrolling.
+- **Infinite cursor lists**: `getNextPageParam` must return `undefined` (not the core's `null`) at
+  end-of-list, or `hasNextPage` stays truthy and `fetchNextPage()` loops on page 1. Gate the
+  prefetch effect on a real virtual window (`items.length > 0`, `lastIndex` sentinel `-1`).
+- **Derived facets must be invalidated on writes**: `/facets/hosts` & `/facets/brands` have a
+  `staleTime`, so list mutations (create SKU / import / add competitor) must also invalidate the
+  facet keys (via `useOptimisticCreate`'s `alsoInvalidate`) or chip counts go stale.
+- **Big-list filters belong server-side**: brand/host filters drive the infinite query params
+  (server filters), and chips come from SQL facet endpoints — not from counting a loaded page.
+- **SSE fallback**: EventSource can't send a Bearer header, so bearer/headless (or no EventSource)
+  degrades to interval polling (`invalidateQueries(['alerts'])`); cookie SPA keeps SSE primary. Model
+  it as an explicit transport `mode` ('sse'|'polling'|'off') in context. Test polling by `vi.mock`-ing
+  `@/config` to bearer + fake timers + spying `invalidateQueries`.
+
 ## Per-phase loop
 - Same strict loop as the core: local tests + local Copilot → push → CI green + GitHub Copilot zero
   comments → squash-merge + delete branch → next phase.
