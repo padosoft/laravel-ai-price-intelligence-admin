@@ -37,9 +37,14 @@ final class PanelRouteTest extends TestCase
     #[Test]
     public function the_poll_interval_is_taken_from_config(): void
     {
-        config()->set('price-intelligence-admin.realtime_poll_interval_ms', 30000);
-        // Js::from() unicode-escapes the key; assert the value is present in the payload.
-        $this->get('/admin/price-intelligence')->assertOk()->assertSee('30000', false);
+        // Use a distinctive value that won't occur incidentally, so seeing it proves it flowed from
+        // config into the injected payload (the default is 15000). Js::from() escapes the JSON
+        // string's quotes (to ") but leaves the bare number, so the key and value render
+        // adjacent as `…pollIntervalMs":73313`.
+        config()->set('price-intelligence-admin.realtime_poll_interval_ms', 73313);
+        $response = $this->get('/admin/price-intelligence')->assertOk();
+        $response->assertSee('pollIntervalMs', false);
+        $response->assertSee('73313', false);
     }
 
     #[Test]
