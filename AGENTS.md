@@ -106,5 +106,49 @@ For EVERY phase, in order:
   live regions with `aria-live`, and keep one `<h1>` per page (`heading-order` for the global
   `h1→h3` card-title pattern is the one deferred best-practice item).
 
+## Distilled lessons (B4–B8 — enterprise hardening)
+
+**Enterprise lists (500k SKU)**
+- Virtualize big tables with `@tanstack/react-virtual` using the **spacer-row** technique (top/bottom
+  padding `<tr>`s) so `<table>`/`.tbl` semantics survive. jsdom has no `ResizeObserver` (stub a no-op
+  in test setup) and no measurable viewport, so the virtualizer yields an empty window — make the
+  component **fall back to rendering all rows** when `getVirtualItems()` is empty (also good for SSR).
+  Make the scroll container focusable (`tabIndex=0` + `role`/`aria-label`).
+- Infinite cursor lists: `getNextPageParam` must return **`undefined`** (not the core's `null`) at
+  end-of-list, else `hasNextPage` stays truthy and `fetchNextPage()` loops on page 1. Gate the
+  prefetch effect on a real window (`items.length > 0`, `lastIndex` sentinel `-1`).
+- Push **filters server-side** (brand/host as query params) and source chip counts from **SQL facet
+  endpoints** (`/facets/hosts`, `/facets/brands`) — never count a loaded page. Facets have a
+  `staleTime`, so list-mutating actions must also invalidate the facet keys (`useOptimisticCreate`'s
+  `alsoInvalidate`).
+
+**Mutations / forms (no dead buttons)**
+- One reusable `useOptimisticCreate(prefix, fn, buildTemp, appliesTo?, alsoInvalidate?)`: prepends a
+  temp row (negative id) across matching cursor-page caches, rolls back on error, settle-invalidates.
+  **Guard** `Array.isArray(old.data)` so a sibling detail cache (`['x', id]`) isn't corrupted; use
+  `appliesTo` so a filtered list (e.g. paused targets) doesn't flash an item that doesn't match.
+- Capture trimmed/parsed form values into locals **before** `mutate` — inputs stay editable while
+  pending, so callbacks/toasts must reflect what was submitted. Preserve a valid `0` (priority) —
+  parse + NaN-check, don't `Number(x) || default`.
+- CSV export client: split `fetchBlob` (network → `{blob, filename}`) from `saveBlob` (DOM; no-op in
+  jsdom; defer `revokeObjectURL` a tick after `click()`). Serializer must guard **formula injection**
+  (neutralize leading `= + - @`, incl. leading whitespace) and quote CR/LF. jsdom `Blob` has no
+  `.text()` — assert CSV via the synthesizer. For PDF/digest with no endpoint, `window.print()` the
+  real content (no synthetic data).
+
+**Realtime fallback**
+- EventSource can't send a Bearer header → bearer/headless (or no `EventSource`) degrades to interval
+  **polling** (`invalidateQueries(['alerts'])`); cookie SPA keeps SSE primary. Model an explicit
+  transport `mode` ('sse'|'polling'|'off'); clamp the poll cadence to a sane floor. Test polling by
+  `vi.mock`-ing `@/config` to bearer + fake timers + spying `invalidateQueries`.
+
+**Review loop**
+- The harness auto-mode classifier blocks `copilot --autopilot --yolo` (it disables approval gates) —
+  rely on the **remote** GitHub Copilot PR review; run all other local gates before pushing.
+- Copilot/Codex findings on the B PRs were almost all valid (cursor-end loop, facet invalidation,
+  ai_act gating, formula injection, poll clamp). Push back only with evidence — e.g. `pages.flatMap`
+  for infinite+virtual is the canonical TanStack pattern; manual accumulation desyncs on refetch.
+
 ## Final task — DONE
-LESSON.md learnings consolidated above. Admin roadmap A0–A8 complete; v1.0.0 tagged.
+LESSON.md learnings consolidated above (A0–A8 and B4–B8). Admin roadmap complete through B8; tag
+**v1.1.0**. CHANGELOG.md, docs/DEPLOYMENT.md and docs/ADMIN-GUIDE.md shipped.
