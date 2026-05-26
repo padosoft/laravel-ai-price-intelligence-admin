@@ -20,7 +20,8 @@ match candidate metadata, released 2026-05-25).
       axe) — PR #10. `heading-order` (global h1→h3 card-title) is the one deferred best-practice item.
 - [x] **A8** — README (screenshot gallery) + LESSON consolidated into AGENTS.md + tag v1.0.0.
 
-All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+axe) green.
+All 19 screens shipped, wired to the live core API; at the v1.0.0 (A8) tag: 55 Vitest + 8
+Playwright (+axe) green. The B-phases grew the suite to the current **82 Vitest** + 8 e2e + 4 visual.
 
 ## Maintenance — toolchain
 - [x] **Vite 6 → 8** (`feat/admin-vite8`): bumped `vite ^6.0.5 → ^8.0.14`, co-bumped
