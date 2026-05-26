@@ -22,6 +22,13 @@ match candidate metadata, released 2026-05-25).
 
 All 19 screens shipped, wired to the live core API; 55 Vitest + 8 Playwright (+axe) green.
 
+## Maintenance — toolchain
+- [x] **Vite 6 → 8** (`feat/admin-vite8`): bumped `vite ^6.0.5 → ^8.0.14`, co-bumped
+  `@vitejs/plugin-react ^4.3.4 → ^6.0.2` (peer requires vite ^8), `@tailwindcss/vite`/`tailwindcss`
+  `^4.0.0 → ^4.3.0`. No source or `vite.config.ts` changes needed. All gates green: typecheck, lint,
+  vitest 82, build (Rolldown-based, manifest still at `.vite/manifest.json`), e2e 8, visual
+  regression 4 (baselines matched 1:1 — rendering unchanged). See LESSON "Maintenance: Vite 6 → 8".
+
 ## B-phase roadmap (admin) — consumes core v1.5.0
 > The CORE B-phases are DONE and released: **v1.3.0** (LLM layer), **v1.4.0** (marketplace API
 > adapters), **v1.5.0** (API gaps + enterprise scale: observations host filter + stock/promo history,
