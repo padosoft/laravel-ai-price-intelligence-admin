@@ -5,7 +5,9 @@ export interface AdminRuntimeConfig {
   auth: { mode: 'cookie' | 'bearer' };
   locale: string;
   csrfCookie: string;
-  realtime: { driver: 'sse' | 'echo' };
+  /** `driver`: live-alert transport. `pollIntervalMs`: refetch cadence (ms) for the polling
+   * fallback used when SSE isn't available (bearer/headless or no EventSource). */
+  realtime: { driver: 'sse' | 'echo'; pollIntervalMs?: number };
   useMocks?: boolean;
 }
 

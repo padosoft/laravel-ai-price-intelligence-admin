@@ -41,10 +41,14 @@ export function Alerts({ onNavigate }: { onNavigate?: (r: RouteKey) => void }) {
               className="live-pill"
               style={{ fontSize: 10 }}
               aria-live="polite"
-              title={stream.connected ? 'Live stream connected' : 'Reconnecting…'}
+              title={
+                stream.mode === 'polling'
+                  ? 'SSE unavailable — polling for new alerts'
+                  : stream.connected ? 'Live stream connected' : 'Reconnecting…'
+              }
             >
               <span className={`pulse ${stream.connected ? '' : 'idle'}`} aria-hidden="true" />
-              {stream.connected ? 'Live' : 'Reconnecting'}
+              {stream.mode === 'polling' ? 'Polling' : stream.connected ? 'Live' : 'Reconnecting'}
             </span>
           )}
           <p className="page-sub">
