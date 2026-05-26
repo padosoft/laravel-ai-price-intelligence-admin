@@ -21,10 +21,10 @@ function toPoints(obs: PriceObservation[] | undefined) {
     .sort((a, b) => a.t.getTime() - b.t.getTime());
 }
 
-export function Prices() {
+export function Prices({ initialProductId }: { initialProductId?: number } = {}) {
   const catalog = useCatalog();
   const products = catalog.data?.data ?? [];
-  const [productId, setProductId] = useState<number | null>(null);
+  const [productId, setProductId] = useState<number | null>(initialProductId ?? null);
   const [range, setRange] = useState('30d');
   const [active, setActive] = useState<Set<string>>(() => new Set(HOSTS.map((h) => h.host)));
 

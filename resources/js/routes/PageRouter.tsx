@@ -60,8 +60,10 @@ export function PageRouter({ route, routeParams, onNavigate }: PageRouterProps) 
       const id = Number(routeParams.competitorId);
       return <CompetitorDetail competitorId={Number.isFinite(id) ? id : 0} onNavigate={onNavigate} />;
     }
-    case 'prices':
-      return <Prices />;
+    case 'prices': {
+      const pid = Number(routeParams.productId);
+      return <Prices initialProductId={Number.isFinite(pid) && pid > 0 ? pid : undefined} />;
+    }
     case 'anomalies':
       return <Anomalies />;
     case 'forecasts':

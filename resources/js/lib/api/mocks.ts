@@ -2,6 +2,7 @@ import { ApiError } from './errors';
 import { toCsv } from '../csv';
 import type { CursorPage, DashboardStats, RepricingRule, TenantMe, TenantSettings } from './types';
 import {
+  AI_DECISIONS,
   ALERTS,
   ANOMALIES,
   API_KEYS,
@@ -132,7 +133,11 @@ const handlers: Record<string, Handler> = {
     return { data: { settings: mockTenantSettings } };
   },
   'GET /stats': () => ({ data: STATS }),
-  'GET /catalog/products': () => page(mockProducts),
+  'GET /catalog/products': (query) => {
+    // Honor the server-side brand filter (used by the virtualized/infinite Catalog list).
+    const brand = query?.brand as string | undefined;
+    return page(brand ? mockProducts.filter((p) => p.brand === brand) : mockProducts);
+  },
   'POST /catalog/products:bulk': (_query, body) => {
     const items = ((body as { products?: Array<Record<string, unknown>> } | undefined)?.products) ?? [];
     for (const it of items) {
@@ -245,6 +250,33 @@ const handlers: Record<string, Handler> = {
     const period = query?.period as string | undefined;
     const data = period ? REVIEWS.filter((r) => r.period === period) : REVIEWS;
     return { ...page(data), meta: { enabled: true } };
+  },
+  'GET /facets/hosts': () => {
+    // Exact per-host counts over the full (mutable) competitor list — mirrors the core's SQL facet.
+    const counts = new Map<string, number>();
+    for (const c of mockCompetitors) {
+      const h = c.source?.host;
+      if (h) counts.set(h, (counts.get(h) ?? 0) + 1);
+    }
+    const data = [...counts.entries()]
+      .map(([host, count]) => ({ host, count }))
+      .sort((a, b) => b.count - a.count);
+    return { data };
+  },
+  'GET /facets/brands': () => {
+    // Exact per-brand counts over the full (mutable) product list — mirrors the core's SQL facet.
+    const counts = new Map<string, number>();
+    for (const p of mockProducts) {
+      if (p.brand) counts.set(p.brand, (counts.get(p.brand) ?? 0) + 1);
+    }
+    const data = [...counts.entries()]
+      .map(([brand, count]) => ({ brand, count }))
+      .sort((a, b) => b.count - a.count);
+    return { data };
+  },
+  'GET /ai-decisions': (query) => {
+    const feature = query?.feature as string | undefined;
+    return page(feature ? AI_DECISIONS.filter((d) => d.feature === feature) : AI_DECISIONS);
   },
   'GET /competitor-products': (query) => {
     const host = query?.host as string | undefined;

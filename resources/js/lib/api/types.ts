@@ -339,6 +339,33 @@ export interface ApiKeyCreated {
   plaintext: string;
 }
 
+/** SQL-level facet count from `GET /facets/hosts` (exact per-host competitor count, not page-1). */
+export interface HostFacet {
+  host: string;
+  count: number;
+}
+
+/** SQL-level facet count from `GET /facets/brands` (exact per-brand SKU count, not page-1). */
+export interface BrandFacet {
+  brand: string;
+  count: number;
+}
+
+/** A row of the EU AI Act decision log (`GET /ai-decisions`). */
+export interface AiDecision {
+  id: number;
+  subject_type: string | null;
+  subject_id: number | null;
+  feature: string;
+  model: string | null;
+  model_version: string | null;
+  confidence: number | null;
+  cost_micros: number | null;
+  human_reviewed: boolean;
+  output: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export interface FetchLog {
   id: number;
   competitor_source_id: number | null;

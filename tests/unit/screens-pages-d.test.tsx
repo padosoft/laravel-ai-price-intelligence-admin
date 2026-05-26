@@ -131,6 +131,33 @@ describe('Compliance', () => {
     expect(screen.getByRole('heading', { name: 'Compliance checks' })).toBeInTheDocument();
   });
 
+  it('renders the AI decision log (GET /ai-decisions)', async () => {
+    wrap(<Compliance />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: /AI decision log/ })).toBeInTheDocument());
+    // A feature from the fixture decisions appears in the table.
+    await waitFor(() => expect(screen.getAllByText('visual_match').length).toBeGreaterThan(0));
+    expect(screen.getByText('content_gap')).toBeInTheDocument();
+  });
+
+  it('hides the AI decision log when the ai_act module is off', () => {
+    const off: AuthState = {
+      isLoading: false,
+      isError: false,
+      me: null,
+      hasFeature: (f: string) => f !== 'ai_act',
+      hasAbility: () => true,
+    };
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <AuthContext.Provider value={off}>
+          <ToastProvider><Compliance /></ToastProvider>
+        </AuthContext.Provider>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText(/ai_act\) is not enabled/)).toBeInTheDocument();
+    expect(screen.queryByText('visual_match')).not.toBeInTheDocument();
+  });
+
   it('exports the attestation via the print dialog', async () => {
     const user = userEvent.setup();
     const printSpy = vi.fn();

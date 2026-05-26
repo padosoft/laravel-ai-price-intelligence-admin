@@ -1,15 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, downloadCsv, unwrap } from '@/lib/api/client';
 import type {
   Alert,
   Anomaly,
   ApiKey,
   ApiKeyCreated,
+  AiDecision,
   AssortmentGap,
+  BrandFacet,
   CompetitorDetail,
   CompetitorListItem,
   CompetitorProduct,
   ContentGap,
+  HostFacet,
   CursorPage,
   FetchLog,
   Forecast,
@@ -45,6 +48,9 @@ function useOptimisticCreate<TVars, TItem, TResult>(
   // cache whose filter wouldn't actually contain the new item (e.g. a paused-only target list
   // must not flash a newly created active target). Defaults to "applies everywhere".
   appliesTo?: (queryKey: readonly unknown[], vars: TVars) => boolean,
+  // Extra query-key prefixes to invalidate on settle (e.g. a derived facet whose counts change
+  // when the list changes). The primary `prefix` is always invalidated.
+  alsoInvalidate?: readonly (readonly unknown[])[],
 ) {
   const qc = useQueryClient();
   return useMutation<TResult, unknown, TVars, { snapshots: Array<[readonly unknown[], CursorPage<TItem> | undefined]> }>({
@@ -67,7 +73,10 @@ function useOptimisticCreate<TVars, TItem, TResult>(
     onError: (_e, _v, ctx) => {
       ctx?.snapshots.forEach(([key, data]) => qc.setQueryData(key, data));
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: prefix }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: prefix });
+      alsoInvalidate?.forEach((key) => void qc.invalidateQueries({ queryKey: key }));
+    },
   });
 }
 
@@ -108,6 +117,38 @@ export function useCatalog() {
   });
 }
 
+/** Page size for the virtualized/infinite enterprise lists (catalog, competitors). */
+const INFINITE_PAGE_SIZE = 100;
+
+/** Exact per-brand SKU counts computed in SQL (Catalog brand chips; scales past page 1). */
+export function useBrandFacets() {
+  return useQuery({
+    queryKey: ['facets', 'brands'],
+    queryFn: () => api.get<{ data: BrandFacet[] }>('/facets/brands').then(unwrap),
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Cursor-paginated, infinite catalog list for the virtualized Catalog table (500k-SKU scale).
+ * Follows the core's `next_cursor`; optional server-side `brand` filter so the DB does the work.
+ */
+export function useCatalogInfinite(brand?: string) {
+  return useInfiniteQuery({
+    queryKey: ['catalog', 'products', 'infinite', { brand: brand ?? 'all' }],
+    queryFn: ({ pageParam }) =>
+      api.get<CursorPage<Product>>('/catalog/products', {
+        per_page: INFINITE_PAGE_SIZE,
+        ...(brand && brand !== 'all' ? { brand } : {}),
+        ...(pageParam ? { cursor: pageParam } : {}),
+      }),
+    initialPageParam: undefined as string | undefined,
+    // Map the core's `next_cursor: null` (last page) to `undefined` so hasNextPage goes false —
+    // returning null would keep it truthy and loop fetchNextPage on the first page.
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
+  });
+}
+
 /** Payload for creating a single SKU (POST /catalog/products:bulk with a one-item batch). */
 export interface NewSkuInput {
   external_id: string;
@@ -143,6 +184,9 @@ export function useCatalogActions() {
       currency: input.currency ?? null,
       base_country: input.base_country ?? null,
     }),
+    undefined,
+    // A new SKU changes the per-brand facet counts that drive the Catalog chips.
+    [['facets', 'brands']],
   );
 
   const importCsv = useMutation({
@@ -151,7 +195,10 @@ export function useCatalogActions() {
       form.append('file', file);
       return api.post<{ data: { imported: number } }>('/catalog/products:csv', form);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['catalog', 'products'] }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['catalog', 'products'] });
+      void qc.invalidateQueries({ queryKey: ['facets', 'brands'] });
+    },
   });
 
   return { createSku, importCsv };
@@ -245,6 +292,25 @@ export function useCompetitors(host?: string, productId?: number | null) {
   });
 }
 
+/**
+ * Cursor-paginated, infinite competitor listing for the virtualized Competitors table. Optional
+ * host filter is applied server-side (so large catalogs page correctly).
+ */
+export function useCompetitorsInfinite(host?: string) {
+  return useInfiniteQuery({
+    queryKey: ['competitor-products', 'infinite', { host: host ?? 'all' }],
+    queryFn: ({ pageParam }) =>
+      api.get<CursorPage<CompetitorListItem>>('/competitor-products', {
+        per_page: INFINITE_PAGE_SIZE,
+        ...(host ? { host } : {}),
+        ...(pageParam ? { cursor: pageParam } : {}),
+      }),
+    initialPageParam: undefined as string | undefined,
+    // `null` (last page) → `undefined` so hasNextPage goes false (see useCatalogInfinite).
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
+  });
+}
+
 /** Single competitor listing detail (header + latest price/stock/promo/content snapshots).
  * Disabled for non-positive ids (e.g. navigated without a competitor selected). */
 export function useCompetitorDetail(id: number) {
@@ -252,6 +318,16 @@ export function useCompetitorDetail(id: number) {
     queryKey: ['competitor-products', id],
     queryFn: () => api.get<Resource<CompetitorDetail>>(`/competitor-products/${id}`).then(unwrap),
     enabled: id > 0,
+  });
+}
+
+/** Exact per-host competitor counts computed in SQL (host chips on Competitors; scales past
+ * page 1 on 500k-SKU catalogs, unlike counting a single loaded page). */
+export function useHostFacets() {
+  return useQuery({
+    queryKey: ['facets', 'hosts'],
+    queryFn: () => api.get<{ data: HostFacet[] }>('/facets/hosts').then(unwrap),
+    staleTime: 60_000,
   });
 }
 
@@ -291,6 +367,8 @@ export function useCompetitorActions() {
       const params = key[1] as { host?: string; productId?: number | null } | undefined;
       return params?.host === 'all' && (params?.productId ?? null) === null;
     },
+    // Adding/removing a competitor changes the per-host facet counts.
+    [['facets', 'hosts']],
   );
 
   const discover = useMutation({
@@ -358,6 +436,22 @@ export function useReviews(period?: string) {
   return useQuery({
     queryKey: ['reviews', period ?? 'all'],
     queryFn: () => api.get<ReviewsPage>('/reviews', period ? { period } : undefined),
+  });
+}
+
+/** EU AI Act decision log (Compliance screen). Loads the newest single page (`per_page` limit),
+ * newest first, optionally filtered by feature — the Compliance viewer shows a recent snapshot,
+ * not a full pager. Pass `enabled=false` (e.g. when the ai_act module is off for the tenant) so
+ * the request never fires — the endpoint can legitimately 403/404 without it. */
+export function useAiDecisions(feature?: string, limit?: number, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['ai-decisions', { feature: feature ?? 'all', limit }],
+    queryFn: () =>
+      api.get<CursorPage<AiDecision>>('/ai-decisions', {
+        ...(feature ? { feature } : {}),
+        ...(limit ? { per_page: limit } : {}),
+      }),
+    enabled,
   });
 }
 

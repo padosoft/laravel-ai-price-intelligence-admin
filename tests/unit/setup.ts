@@ -54,4 +54,15 @@ if (typeof Element.prototype.scrollTo !== 'function') {
   Element.prototype.scrollTo = () => {};
 }
 
+// @tanstack/react-virtual instantiates a ResizeObserver, which jsdom doesn't provide; stub a
+// no-op so virtualized lists don't crash under test. (With no measurable viewport in jsdom the
+// virtualizer yields an empty window and VirtualTable falls back to rendering all rows.)
+if (typeof globalThis.ResizeObserver !== 'function') {
+  globalThis.ResizeObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  } as unknown as typeof ResizeObserver;
+}
+
 afterEach(() => cleanup());

@@ -68,6 +68,14 @@ describe('Competitors', () => {
     await waitFor(() => expect(screen.queryByText('https://trovaprezzi.it/x')).not.toBeInTheDocument());
   });
 
+  it('shows exact host-facet counts on the chips (GET /facets/hosts)', async () => {
+    wrap(<Competitors onNavigate={() => {}} />);
+    // amazon.it ×2, mediaworld.it ×2, trovaprezzi.it ×1 ⇒ All hosts = 5.
+    await waitFor(() => expect(screen.getByRole('button', { name: /All hosts\s*5/ })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /trovaprezzi\.it\s*1/ })).toBeInTheDocument();
+    expect(screen.getByText(/5 confirmed competitor listings across 3 hosts/)).toBeInTheDocument();
+  });
+
   it('navigates to the competitor detail on row activation', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();

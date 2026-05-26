@@ -3,14 +3,14 @@ import type { KeyboardEvent } from 'react';
 import { I } from '@/components/ds/icons';
 import { Price, Tag } from '@/components/ds/pricing';
 import { Modal, useToast } from '@/components/ds';
-import { useCatalog, useCatalogActions, useCsvExport } from '@/hooks/operate';
+import { VirtualTable } from '@/components/VirtualTable';
+import { useBrandFacets, useCatalogActions, useCatalogInfinite, useCsvExport } from '@/hooks/operate';
 import { fmtNum } from '@/lib/format';
 import type { RouteKey } from '@/lib/types';
 
 export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Record<string, unknown>) => void }) {
-  const { data, isLoading } = useCatalog();
-  const products = useMemo(() => data?.data ?? [], [data]);
   const { createSku, importCsv } = useCatalogActions();
+  const brandFacetsQuery = useBrandFacets();
   const csvExport = useCsvExport();
   const toast = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -60,23 +60,24 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
       onError: () => toast.push({ title: 'CSV import failed', kind: 'error' }),
     });
   };
-  // Precompute brand counts once (O(n)) instead of filtering per chip in render.
-  const brandCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const p of products) if (p.brand) counts.set(p.brand, (counts.get(p.brand) ?? 0) + 1);
-    return counts;
-  }, [products]);
-  const brands = useMemo(() => ['all', ...brandCounts.keys()], [brandCounts]);
+  // Brand chips use EXACT per-brand counts from the SQL facet endpoint (scales past page 1).
+  const brandFacets = useMemo(() => brandFacetsQuery.data ?? [], [brandFacetsQuery.data]);
+  const brandCounts = useMemo(() => new Map(brandFacets.map((f) => [f.brand, f.count])), [brandFacets]);
+  const totalSkus = useMemo(() => brandFacets.reduce((sum, f) => sum + f.count, 0), [brandFacets]);
+  const brands = useMemo(() => ['all', ...brandFacets.map((f) => f.brand)], [brandFacets]);
   const [brand, setBrand] = useState('all');
 
-  const filtered = brand === 'all' ? products : products.filter((p) => p.brand === brand);
+  // Cursor-paginated, virtualized list (server-side brand filter). Pages are flattened for the
+  // virtualizer; infinite scroll fetches the next cursor as the user nears the end.
+  const list = useCatalogInfinite(brand);
+  const listRows = useMemo(() => list.data?.pages.flatMap((p) => p.data) ?? [], [list.data]);
 
   return (
     <div className="page" data-testid="page-catalog">
       <div className="page-head">
         <div>
           <h1 className="page-title">Catalog</h1>
-          <p className="page-sub">{fmtNum(products.length)} SKUs synced from the host catalog.</p>
+          <p className="page-sub">{fmtNum(totalSkus)} SKUs synced from the host catalog.</p>
         </div>
         <div className="page-actions">
           <input
@@ -144,56 +145,54 @@ export function Catalog({ onNavigate }: { onNavigate: (r: RouteKey, params?: Rec
             onClick={() => setBrand(b)}
           >
             {b === 'all' ? 'All brands' : b}
-            <span className="count">{b === 'all' ? products.length : (brandCounts.get(b) ?? 0)}</span>
+            <span className="count">{b === 'all' ? totalSkus : (brandCounts.get(b) ?? 0)}</span>
           </button>
         ))}
       </div>
 
       <div className="card">
         <div className="card-body flush">
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>SKU · GTIN</th>
-                  <th>Brand</th>
-                  <th className="right">Our price</th>
-                  <th>Country</th>
+          <VirtualTable
+            rows={listRows}
+            colCount={5}
+            testId="catalog-list"
+            ariaLabel="Catalog products"
+            hasNextPage={list.hasNextPage}
+            isFetchingNextPage={list.isFetchingNextPage}
+            onLoadMore={() => list.fetchNextPage()}
+            head={(
+              <tr>
+                <th>Product</th>
+                <th>SKU · GTIN</th>
+                <th>Brand</th>
+                <th className="right">Our price</th>
+                <th>Country</th>
+              </tr>
+            )}
+            empty={!list.isLoading ? <tr><td colSpan={5} className="empty">No products</td></tr> : undefined}
+            renderRow={(p) => {
+              // Product-centric destination: the Prices explorer preselected to this SKU.
+              const nav = () => onNavigate('prices', { productId: p.id });
+              const handleKey = (e: KeyboardEvent<HTMLTableRowElement>) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav(); }
+              };
+              return (
+                <tr key={p.id} role="button" aria-label={`Open ${p.name}`} tabIndex={0} onClick={nav} onKeyDown={handleKey}>
+                  <td>
+                    <div style={{ fontWeight: 500, fontSize: 13 }}>{p.name}</div>
+                    <div className="mono tertiary" style={{ fontSize: 11, marginTop: 2 }}>{p.model ?? '—'}</div>
+                  </td>
+                  <td>
+                    <div className="mono" style={{ fontSize: 12 }}>{p.sku ?? '—'}</div>
+                    <div className="mono tertiary" style={{ fontSize: 10.5, marginTop: 2 }}>{p.gtin ?? '—'}</div>
+                  </td>
+                  <td className="muted">{p.brand ?? '—'}</td>
+                  <td className="right">{p.our_price_cents != null ? <Price cents={p.our_price_cents} /> : '—'}</td>
+                  <td>{p.base_country ? <Tag>{p.base_country}</Tag> : '—'}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p) => {
-                  const nav = () => onNavigate('competitor_detail', { product: p.id });
-                  const handleKey = (e: KeyboardEvent<HTMLTableRowElement>) => {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav(); }
-                  };
-                  return (
-                  <tr key={p.id} role="button" aria-label={`Open ${p.name}`} tabIndex={0} onClick={nav} onKeyDown={handleKey}>
-                    <td>
-                      <div style={{ fontWeight: 500, fontSize: 13 }}>{p.name}</div>
-                      <div className="mono tertiary" style={{ fontSize: 11, marginTop: 2 }}>
-                        {p.model ?? '—'}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="mono" style={{ fontSize: 12 }}>{p.sku ?? '—'}</div>
-                      <div className="mono tertiary" style={{ fontSize: 10.5, marginTop: 2 }}>{p.gtin ?? '—'}</div>
-                    </td>
-                    <td className="muted">{p.brand ?? '—'}</td>
-                    <td className="right">{p.our_price_cents != null ? <Price cents={p.our_price_cents} /> : '—'}</td>
-                    <td>{p.base_country ? <Tag>{p.base_country}</Tag> : '—'}</td>
-                  </tr>
-                  );
-                })}
-                {!isLoading && filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="empty">No products</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              );
+            }}
+          />
         </div>
       </div>
     </div>

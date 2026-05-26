@@ -1,16 +1,19 @@
 import { I } from '@/components/ds/icons';
+import { AiBadge } from '@/components/ds/pricing';
 import { useToast } from '@/components/ds';
 import { useAuth } from '@/state/auth-context';
-import { useFetchLogs, printDocument } from '@/hooks/operate';
+import { useAiDecisions, useFetchLogs, printDocument } from '@/hooks/operate';
 
 export function Compliance() {
   const { hasFeature } = useAuth();
-  const logs = useFetchLogs(20);
-  const toast = useToast();
-  const exportAttestation = () => { toast.push({ title: 'Preparing attestation', body: 'Opening the print dialog…' }); printDocument(); };
-
   const aiAct = hasFeature('ai_act');
   const pii = hasFeature('pii');
+  const logs = useFetchLogs(20);
+  // The decision-log endpoint is part of the ai_act module — only query it when enabled.
+  const decisions = useAiDecisions(undefined, 25, aiAct);
+  const decisionRows = decisions.data?.data ?? [];
+  const toast = useToast();
+  const exportAttestation = () => { toast.push({ title: 'Preparing attestation', body: 'Opening the print dialog…' }); printDocument(); };
 
   const checks: Array<{ check: string; ok: boolean; detail: string }> = [
     { check: 'Art. 50 transparency — AI output carries an [AI] badge', ok: true, detail: 'All AI-generated content is flagged in the UI.' },
@@ -93,6 +96,59 @@ export function Compliance() {
             ))}
             {(logs.data?.data?.length ?? 0) === 0 && <div className="empty">No fetch activity in the window.</div>}
           </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 18 }}>
+        <div className="card-head">
+          <div>
+            <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              AI decision log <AiBadge>EU AI Act Art. 12 record-keeping</AiBadge>
+            </h3>
+            <p className="card-sub">Every AI-assisted decision is logged with its model, confidence and cost for audit &amp; human oversight.</p>
+          </div>
+          <span className="muted" style={{ fontSize: 11 }}>newest {decisionRows.length}</span>
+        </div>
+        <div className="card-body flush">
+          {!aiAct ? (
+            <div className="empty">The EU AI Act module (ai_act) is not enabled for this tenant — decision logging is off.</div>
+          ) : (
+          <div className="table-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Feature</th>
+                  <th>Subject</th>
+                  <th>Model</th>
+                  <th className="center">Confidence</th>
+                  <th className="right">Cost</th>
+                  <th>Reviewed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {decisionRows.map((d) => (
+                  <tr key={d.id}>
+                    <td className="mono muted">{d.created_at.slice(0, 16).replace('T', ' ')}</td>
+                    <td><span className="badge outline" style={{ fontSize: 10 }}>{d.feature}</span></td>
+                    <td className="mono muted" style={{ fontSize: 11 }}>{d.subject_type ? `${d.subject_type} #${d.subject_id ?? '—'}` : '—'}</td>
+                    <td className="mono" style={{ fontSize: 11 }}>{d.model ?? '—'}{d.model_version ? ` · ${d.model_version}` : ''}</td>
+                    <td className="center mono">{d.confidence != null ? `${d.confidence}` : '—'}</td>
+                    <td className="right mono muted" style={{ fontSize: 11 }}>{d.cost_micros != null ? `€${(d.cost_micros / 1_000_000).toFixed(4)}` : '—'}</td>
+                    <td>
+                      <span className={`badge ${d.human_reviewed ? 'success' : 'outline'}`} style={{ fontSize: 10 }}>
+                        <span className="dot" />{d.human_reviewed ? 'reviewed' : 'auto'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {!decisions.isLoading && decisionRows.length === 0 && (
+                  <tr><td colSpan={7} className="empty">No AI decisions logged yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          )}
         </div>
       </div>
     </div>
