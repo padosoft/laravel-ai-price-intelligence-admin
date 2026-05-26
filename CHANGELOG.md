@@ -70,6 +70,7 @@ First public release: the full read-side admin panel (19 screens) for the core A
 - **A7** — real-time SSE alerts, i18n switcher, WCAG-AA contrast (axe `color-contrast` enforced in CI).
 - **A8** — README with screenshot gallery, consolidated lessons into AGENTS.md.
 
-[Unreleased]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/padosoft/laravel-ai-price-intelligence-admin/releases/tag/v1.0.0
