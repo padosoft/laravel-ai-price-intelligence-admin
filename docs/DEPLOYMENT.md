@@ -39,7 +39,7 @@ The `PanelController` injects `window.__PI_ADMIN__` from `config/price-intellige
 |---|---|---|---|
 | `apiBaseUrl` | `api_base_url` / `PRICE_INTELLIGENCE_ADMIN_API_BASE_URL` | Core REST base | `/api/v1` |
 | `auth.mode` | `auth_mode` / `PRICE_INTELLIGENCE_ADMIN_AUTH_MODE` | `cookie` (Sanctum SPA, **recommended**) or `bearer` (headless) | `cookie` |
-| `locale` | the app locale (`App::getLocale()`) — `en*` → English, else Italian | `it` |
+| `locale` | from the host app's `App::getLocale()` — `en*` → English, else Italian | host app locale |
 | `realtime.driver` | `realtime` / `PRICE_INTELLIGENCE_ADMIN_REALTIME` | `sse` enables the live EventSource stream (cookie mode). Any other value (or bearer auth / no EventSource) → the panel uses the polling fallback. | `sse` |
 | `realtime.pollIntervalMs` | `realtime_poll_interval_ms` / `PRICE_INTELLIGENCE_ADMIN_REALTIME_POLL_MS` | Polling-fallback cadence (ms, floored to 1000) | `15000` |
 | `csrfCookie` | fixed `XSRF-TOKEN` (Sanctum default) | XSRF cookie name (cookie mode) | `XSRF-TOKEN` |
