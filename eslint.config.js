@@ -18,7 +18,14 @@ export default tseslint.config(
       'react-refresh': reactRefresh,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      // eslint-plugin-react-hooks v7 (required for the eslint 10 peer range) redefined
+      // configs.recommended to include the full React Compiler rule family. Bumping the
+      // plugin here is only to satisfy eslint 10's peer dependency — not an opt-in to
+      // React Compiler linting — so we keep the project's established lint contract: the
+      // two classic hook rules that v5's `recommended` enforced. Adopting the Compiler
+      // rules is a deliberate, separate decision left to a maintainer.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
