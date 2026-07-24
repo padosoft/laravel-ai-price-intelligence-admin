@@ -67,7 +67,7 @@ async function request<T>(method: string, path: string, opts: RequestOptions = {
   if (res.status === 204) return undefined as T;
 
   const text = await res.text();
-  let json: unknown = null;
+  let json: unknown;
   try {
     json = text ? JSON.parse(text) : null;
   } catch {
